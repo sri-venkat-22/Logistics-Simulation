@@ -1,0 +1,33 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, Helvetica, Arial, sans-serif",
+    "fontSize": "15px",
+    "primaryColor": "#dbeafe",
+    "primaryBorderColor": "#1d4ed8",
+    "primaryTextColor": "#0f172a",
+    "lineColor": "#475569",
+    "secondaryColor": "#fef3c7",
+    "tertiaryColor": "#f1f5f9",
+    "actorBkg": "#1168bd",
+    "actorTextColor": "#ffffff",
+    "actorBorder": "#0b4884",
+    "signalColor": "#334155",
+    "noteBkgColor": "#fef9c3",
+    "noteBorderColor": "#ca8a04",
+    "critBkgColor": "#fecaca",
+    "critBorderColor": "#dc2626",
+    "doneTaskBkgColor": "#bbf7d0",
+    "doneTaskBorderColor": "#16a34a",
+    "taskBkgColor": "#bfdbfe",
+    "taskBorderColor": "#1d4ed8",
+    "activeTaskBkgColor": "#ddd6fe",
+    "activeTaskBorderColor": "#7c3aed",
+    "sectionBkgColor": "#f8fafc",
+    "altSectionBkgColor": "#eef2f7"
+  },
+  "flowchart": { "curve": "basis", "htmlLabels": true, "padding": 14, "nodeSpacing": 40, "rankSpacing": 55 },
+  "sequence": { "mirrorActors": false, "showSequenceNumbers": true, "actorMargin": 40, "messageFontSize": 13 },
+  "er": { "fontSize": 13 },
+  "gantt": { "barHeight": 26, "fontSize": 13, "sectionFontSize": 13, "leftPadding": 300 }
+}

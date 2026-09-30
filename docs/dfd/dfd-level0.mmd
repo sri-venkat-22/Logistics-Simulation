@@ -1,0 +1,25 @@
+%% DFD Level 0 — context diagram. Circle = process, rectangle = external entity.
+flowchart LR
+  E1["Reality Emulator /<br/>IoT devices"]:::ent
+  E2["Supplier ERP / WMS"]:::ent
+  E3["Open-Meteo · AISStream"]:::ent
+  E4["Planner · Ops manager"]:::ent
+  E5["Security analyst · Admin"]:::ent
+  E6["Claude API"]:::ent
+  E7["Alert channels"]:::ent
+
+  P0(("0<br/><b>AEGIS Twin</b><br/>digital twin<br/>system")):::proc
+
+  E1 -- "GPS pings, stock counts,<br/>port status (signed)" --> P0
+  E2 -- "ASN, inventory feeds" --> P0
+  E3 -- "weather, vessel positions" --> P0
+  E4 -- "scenario specs,<br/>plan approvals, queries" --> P0
+  P0 -- "live network state, KPIs,<br/>forecasts, ranked plans" --> E4
+  E5 -- "chaos injections, roles,<br/>device keys" --> P0
+  P0 -- "trust scores, quarantine log,<br/>audit trail, fidelity report" --> E5
+  P0 -- "tool-use prompts +<br/>tool results" --> E6
+  E6 -- "scenario JSON,<br/>explanations" --> P0
+  P0 -- "alerts (ingest stall,<br/>attack, drift)" --> E7
+
+  classDef ent fill:#eef2f7,stroke:#334155,color:#0f172a
+  classDef proc fill:#dbeafe,stroke:#1d4ed8,color:#0b1f4d,stroke-width:2px

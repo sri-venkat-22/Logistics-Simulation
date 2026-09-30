@@ -1,0 +1,172 @@
+%% ERD — core schema (PLAN §7). PostgreSQL 16 + PostGIS + TimescaleDB. (HT) = hypertable.
+erDiagram
+  NODES {
+    text id PK
+    text type "supplier|port|plant|dc|zone"
+    text name
+    geometry geom "PostGIS Point 4326"
+    int capacity
+    jsonb attrs
+    text status
+  }
+  LANES {
+    text id PK
+    text from_id FK
+    text to_id FK
+    text mode "road|rail|sea|air"
+    real distance_km
+    real cost_per_unit
+    int capacity
+    real co2_per_tkm
+    real lt_mu
+    real lt_sigma
+    text status
+  }
+  SKUS {
+    text id PK
+    text family
+    numeric unit_value
+    bool perishable
+    int shelf_life_h
+    bool cold_chain
+  }
+  INVENTORY {
+    timestamptz ts PK "HT time key"
+    text node_id PK,FK
+    text sku_id PK,FK
+    int on_hand
+    int on_order
+    int backorder
+    text source
+    real trust
+  }
+  ORDERS {
+    uuid id PK
+    text zone_id FK
+    text sku_id FK
+    int qty
+    timestamptz created_ts
+    timestamptz promised_ts
+    timestamptz fulfilled_ts
+    text status
+  }
+  SHIPMENTS {
+    uuid id PK
+    text lane_id FK
+    text sku_id FK
+    int qty
+    text vehicle_id
+    text status
+    timestamptz depart_ts
+    timestamptz eta_pred
+    timestamptz eta_p10
+    timestamptz eta_p90
+    timestamptz arrive_ts
+  }
+  TELEMETRY {
+    timestamptz ts PK "HT time key"
+    text vehicle_id PK
+    double lat
+    double lon
+    real speed
+    real heading
+    text source_id FK
+    bool sig_ok
+    real trust
+    text_arr flags
+  }
+  SOURCES {
+    text id PK
+    text type
+    text hmac_key_hash
+    real trust_score
+    timestamptz last_seen
+    int sla_s
+  }
+  QUARANTINE {
+    bigint id PK
+    timestamptz ts
+    text source_id FK
+    jsonb payload
+    text reason_code
+    int layer
+  }
+  DISRUPTIONS {
+    uuid id PK
+    jsonb spec
+    timestamptz start_ts
+    timestamptz end_ts
+    text status
+  }
+  SCENARIOS {
+    uuid id PK
+    jsonb spec
+    char64 spec_hash UK
+    int n_reps
+    text status
+    jsonb results
+    uuid created_by FK
+  }
+  PLANS {
+    uuid id PK
+    uuid scenario_id FK
+    jsonb actions
+    jsonb kpis
+    real score
+    timestamptz applied_at
+    uuid applied_by FK
+  }
+  PREDICTIONS {
+    bigint id PK
+    text entity
+    text metric
+    timestamptz made_ts
+    int horizon_h
+    real value
+    real p10
+    real p90
+    real actual
+    timestamptz actual_ts
+  }
+  ATTACK_LABELS {
+    bigint id PK
+    timestamptz ts
+    text type
+    text target
+    text injected_by
+  }
+  AUDIT_LOG {
+    bigint id PK
+    timestamptz ts
+    uuid user_id FK
+    text action
+    text target
+    jsonb details
+  }
+  USERS {
+    uuid id PK
+    text email UK
+    text password_hash "argon2"
+    text role_id FK
+  }
+  ROLES {
+    text id PK "viewer|planner|security|admin"
+    jsonb permissions
+  }
+
+  NODES ||--o{ LANES : "from_id"
+  NODES ||--o{ LANES : "to_id"
+  NODES ||--o{ INVENTORY : "stocks"
+  SKUS ||--o{ INVENTORY : "of"
+  NODES ||--o{ ORDERS : "zone places"
+  SKUS ||--o{ ORDERS : "for"
+  LANES ||--o{ SHIPMENTS : "travels"
+  SKUS ||--o{ SHIPMENTS : "carries"
+  SOURCES ||--o{ TELEMETRY : "emits"
+  SOURCES ||--o{ QUARANTINE : "rejected from"
+  SCENARIOS ||--o{ PLANS : "produces"
+  USERS ||--o{ SCENARIOS : "creates"
+  USERS ||--o{ PLANS : "applies"
+  USERS ||--o{ AUDIT_LOG : "acts"
+  ROLES ||--o{ USERS : "grants"
+  DISRUPTIONS }o--o{ SCENARIOS : "modelled by"

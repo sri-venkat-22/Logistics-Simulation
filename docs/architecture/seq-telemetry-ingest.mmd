@@ -1,0 +1,40 @@
+%% (a) Telemetry ingest — device → trust pipeline → twin → UI (NFR: ≥ 5,000 msg/s, p95 ingest→UI < 1 s)
+sequenceDiagram
+  autonumber
+  participant D as Device / Reality Emulator
+  participant G as Ingest gateway
+  participant RS as Redis Streams
+  participant T as Trust worker (×N)
+  participant TW as Twin state service
+  participant PG as Timescale
+  participant A as API (WS fan-out)
+  participant UI as Web app
+
+  D->>G: POST /api/v1/ingest/telemetry (batch ≤ 500, X-Signature: HMAC-SHA256, ts, nonce)
+  G->>G: L1 schema (Pydantic strict) · L2 HMAC + nonce SETNX (TTL 60 s)
+  alt invalid signature / replayed nonce / malformed
+    G-->>D: 401 / 409 / 422 (reason code)
+    G->>RS: XADD quarantine {payload, reason, layer}
+  else accepted
+    G->>RS: XADD telemetry.raw (orjson)
+    G-->>D: 202 Accepted {accepted, rejected}
+  end
+  RS->>T: XREADGROUP trust-workers (batch)
+  T->>T: L3 temporal · L4 physics (Δd/Δt ≤ 120 km/h) · L5 map-match
+  T->>TW: get predicted state (twin oracle, planned route)
+  TW-->>T: predicted position + P99 envelope
+  T->>T: L6 Kalman χ² gate · L7 twin oracle · L8 feed anomaly · L9 reputation update
+  alt suspicious
+    T->>RS: XADD quarantine {reason_code, layer} · trust_score ↓
+    Note over T,UI: Entity keeps its Kalman estimate — the bad point never enters twin state
+  else clean
+    T->>RS: XADD telemetry.clean {trust, flags[]}
+  end
+  T->>RS: XACK
+  RS->>TW: XREADGROUP twin-state
+  TW->>TW: update Redis hashes + NetworkX attrs
+  TW->>PG: batched INSERT telemetry (hypertable, every 500 ms)
+  TW->>RS: PUBLISH live.diff
+  RS->>A: pub/sub message
+  A->>UI: WS /ws/live msgpack diff (5–10 Hz)
+  UI->>UI: lerp positions in requestAnimationFrame (60 fps)

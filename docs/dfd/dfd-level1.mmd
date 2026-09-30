@@ -1,0 +1,56 @@
+%% DFD Level 1 — ingest → trust → twin → simulate/optimise → UI. Circle = process, ║ = data store.
+flowchart TB
+  E1["Devices /<br/>Reality Emulator"]:::ent
+  E2["ERP · WMS ·<br/>weather · AIS"]:::ent
+  E4["Planner · Ops"]:::ent
+  E5["Security analyst"]:::ent
+
+  P1(("1.0<br/>Ingest &<br/>validate")):::proc
+  P2(("2.0<br/>Trust<br/>filtering")):::proc
+  P3(("3.0<br/>Maintain<br/>twin state")):::proc
+  P4(("4.0<br/>Simulate<br/>macro + micro")):::proc
+  P5(("5.0<br/>Optimise &<br/>recommend")):::proc
+  P6(("6.0<br/>Evaluate<br/>fidelity")):::proc
+  P7(("7.0<br/>Serve UI /<br/>API")):::proc
+
+  D1[("D1 telemetry.raw<br/>(Redis Stream)")]:::store
+  D2[("D2 quarantine<br/>(DLQ)")]:::store
+  D3[("D3 master data<br/>nodes · lanes · skus")]:::store
+  D4[("D4 live state +<br/>telemetry history")]:::store
+  D5[("D5 scenarios · plans")]:::store
+  D6[("D6 predictions ·<br/>attack_labels")]:::store
+  D7[("D7 audit_log")]:::store
+
+  E1 -- "signed telemetry" --> P1
+  E2 -- "feeds" --> P1
+  P1 -- "schema-valid msgs" --> D1
+  P1 -- "rejects + reason" --> D2
+  D1 -- "raw msgs" --> P2
+  P3 -- "predicted position<br/>(twin oracle)" --> P2
+  P2 -- "clean msgs + trust" --> P3
+  P2 -- "quarantined msgs" --> D2
+  D3 -- "graph, capacities" --> P3
+  P3 -- "state, history" --> D4
+  D4 -- "snapshot" --> P4
+  E4 -- "scenario spec" --> P7
+  P7 -- "scenario job" --> P4
+  P4 -- "MC bands, TTS/TTR" --> P5
+  P5 -- "candidate plans" --> P4
+  P5 -- "ranked plans" --> D5
+  D5 -- "results" --> P7
+  E4 -- "apply plan" --> P7
+  P7 -- "approved actions" --> P3
+  P7 -- "who / what / when" --> D7
+  P3 -- "shadow predictions" --> D6
+  D4 -- "actuals" --> P6
+  D6 -- "predictions, labels" --> P6
+  P6 -- "MAPE, coverage, F1,<br/>decision value" --> P7
+  D4 -- "live diffs" --> P7
+  P7 -- "map, KPIs, alerts,<br/>plans" --> E4
+  D2 -- "quarantine log" --> P7
+  E5 -- "chaos injection" --> P7
+  P7 -- "trust center views" --> E5
+
+  classDef ent fill:#eef2f7,stroke:#334155,color:#0f172a
+  classDef proc fill:#dbeafe,stroke:#1d4ed8,color:#0b1f4d,stroke-width:2px
+  classDef store fill:#fef3c7,stroke:#b45309,color:#451a03

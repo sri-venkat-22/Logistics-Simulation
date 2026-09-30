@@ -1,0 +1,35 @@
+%% C4 Level 1 — System Context: AEGIS Twin
+flowchart TB
+  planner["<b>Supply-chain planner</b><br/>[Person]<br/>Runs what-ifs, compares and applies plans"]:::person
+  ops["<b>Ops manager</b><br/>[Person]<br/>Monitors the network, acts on alerts"]:::person
+  sec["<b>Security analyst</b><br/>[Person]<br/>Watches data trust, runs chaos drills"]:::person
+  admin["<b>Admin</b><br/>[Person]<br/>Users, roles, device keys, deployments"]:::person
+
+  aegis["<b>AEGIS Twin</b><br/>[Software system]<br/>Two-scale digital twin of an Indian logistics network:<br/>live visibility, Monte Carlo what-ifs, optimised plans,<br/>trust-filtered ingestion and fidelity scoring"]:::system
+
+  reality["<b>Reality Emulator</b><br/>[External system]<br/>Separately seeded SUMO + SimPy world;<br/>emits IoT-style telemetry + labelled attacks"]:::ext
+  meteo["<b>Open-Meteo</b><br/>[External system]<br/>Live weather, no key"]:::ext
+  ais["<b>AISStream</b><br/>[External system]<br/>Live vessel positions (WS)"]:::ext
+  erp["<b>Supplier / ERP / WMS feeds</b><br/>[External system]<br/>ASN, stock counts (CSV/JSON)"]:::ext
+  dataco["<b>DataCo dataset</b><br/>[External data]<br/>Real shipments for backtest"]:::ext
+  claude["<b>Claude API</b><br/>[External system]<br/>LLM with tool use for the Copilot"]:::ext
+  tiles["<b>Basemap tiles</b><br/>[External system]<br/>CARTO / MapTiler / OpenFreeMap (OSM)"]:::ext
+  alerts["<b>Telegram / Discord</b><br/>[External system]<br/>Alert notifications"]:::ext
+
+  planner -- "What-ifs, plan approval [HTTPS]" --> aegis
+  ops -- "Live map, KPIs, alerts [HTTPS/WSS]" --> aegis
+  sec -- "Trust Center, chaos console [HTTPS]" --> aegis
+  admin -- "RBAC, keys, config [HTTPS]" --> aegis
+
+  reality -- "HMAC-signed telemetry batches [HTTPS/WSS]" --> aegis
+  meteo -- "Forecasts [HTTPS]" --> aegis
+  ais -- "Vessel positions [WSS]" --> aegis
+  erp -- "ASN / inventory [HTTPS]" --> aegis
+  dataco -. "Offline backtest [CSV]" .-> aegis
+  aegis -- "Tool-use prompts [HTTPS]" --> claude
+  aegis -- "Map tiles [HTTPS]" --> tiles
+  aegis -- "Alertmanager webhooks" --> alerts
+
+  classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+  classDef system fill:#1168bd,stroke:#0b4884,color:#ffffff
+  classDef ext fill:#8a8a8a,stroke:#6b6b6b,color:#ffffff

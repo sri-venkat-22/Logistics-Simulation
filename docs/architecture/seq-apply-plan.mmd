@@ -1,0 +1,35 @@
+%% (c) Apply plan — human approval gate → live twin → SUMO trucks reroute → audit
+sequenceDiagram
+  autonumber
+  actor P as Planner
+  participant UI as Web app
+  participant C as Copilot
+  participant A as API
+  participant TW as Twin state
+  participant S as Sim orchestrator
+  participant M as SUMO runner (libsumo)
+  participant PG as Postgres (plans, audit_log)
+
+  opt Proposed by the Copilot
+    C->>A: propose_apply(plan_id)
+    A-->>UI: confirmation card (evidence links) — the LLM cannot apply
+  end
+  P->>UI: click "Apply Plan A"
+  UI->>A: POST /plans/{id}/apply (JWT, role = planner)
+  A->>A: RBAC check · plan still valid for current snapshot (version check)
+  alt stale plan or forbidden
+    A-->>UI: 409 / 403 — re-run scenario
+  else ok
+    A->>PG: BEGIN · UPDATE plans SET applied_at, applied_by · INSERT audit_log
+    A->>TW: apply(actions): lane re-routes, transfers, safety-stock deltas
+    TW->>S: schedule new shipments / route changes
+    S->>M: close_road / spawn_truck / reroute_all (command queue)
+    M->>M: traci.vehicle.rerouteTraveltime
+    M-->>S: new FCD positions + arrival events
+    S-->>TW: shipment ETAs updated
+    A->>PG: COMMIT
+    TW-->>A: live.diff (arcs re-routed, violet)
+    A-->>UI: 200 {applied_at} + WS diff
+    UI-->>P: toast + arcs re-route on map + trucks change roads in City Twin
+    A->>PG: INSERT predictions (shadow mode) for fidelity scoring
+  end

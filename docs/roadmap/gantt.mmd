@@ -1,0 +1,32 @@
+%% Roadmap — Phases 2–11. Day 1 = 2026-10-01 (assumption: shift once the level deadlines are confirmed).
+gantt
+  title AEGIS Twin — build roadmap (Phases 2–11, ~24 working days, 4 people)
+  dateFormat YYYY-MM-DD
+  axisFormat %d %b
+  todayMarker off
+
+  section Level 1
+  P1 Idea, architecture, prototype (done)   :done, p1, 2026-10-01, 3d
+  L1 submission                              :milestone, m1, 2026-10-03, 0d
+
+  section Build (critical path)
+  P2 World building — data + scenarios [CP]   :crit, p2, 2026-10-02, 4d
+  P3 SimPy + SUMO engines, coupling [CP]     :crit, p3, 2026-10-03, 7d
+  P4 Backend platform + ingestion [CP]       :crit, p4, 2026-10-05, 6d
+  P5 Frontend MVP on live data               :p5, 2026-10-03, 9d
+
+  section Level 2
+  P6 MVP checkpoint + backup video           :crit, p6, 2026-10-11, 1d
+  L2 submission (v0.2)                       :milestone, m2, 2026-10-11, 0d
+
+  section Level 3
+  P7 Intelligence — optimizer, ML, Copilot, trust ×9 :p7, 2026-10-11, 6d
+  P8 Security, CI/CD, cloud deploy           :p8, 2026-10-14, 5d
+  P9 Fidelity Lab + red-team benchmark       :p9, 2026-10-15, 5d
+  L3 submission (HTTPS URL + CI badge)       :milestone, m3, 2026-10-19, 0d
+
+  section Level 4 + final
+  P10 K8s, HPA/KEDA, load tests, observability :p10, 2026-10-18, 5d
+  Feature freeze                             :milestone, mf, 2026-10-21, 0d
+  P11 Polish, Director mode, deck, rehearsal :active, p11, 2026-10-22, 3d
+  Final pitch                                :milestone, m4, 2026-10-24, 0d

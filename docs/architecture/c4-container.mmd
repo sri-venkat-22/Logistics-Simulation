@@ -1,0 +1,50 @@
+%% C4 Level 2 — Containers: AEGIS Twin (modular monolith first, split per container in Level 4)
+flowchart LR
+  user["<b>Users</b><br/>[Person]<br/>Planner · Ops · Security · Admin"]:::person
+  src["<b>Telemetry sources</b><br/>[External]<br/>Reality Emulator · ERP/WMS · Open-Meteo · AIS"]:::ext
+  llm["<b>Claude API</b><br/>[External]"]:::ext
+
+  subgraph AEGIS["AEGIS Twin — Kubernetes namespace aegis"]
+    direction LR
+    web["<b>Web app</b><br/>[React 19 · deck.gl 9.4 · MapLibre 5]<br/>Mission-control UI, 60 fps map<br/>(Vercel CDN)"]:::container
+    api["<b>API</b><br/>[FastAPI · REST + WS + SSE]<br/>JWT/RBAC, scenarios, plans,<br/>msgpack diffs at 5–10 Hz"]:::container
+    ingest["<b>Ingest gateway</b><br/>[FastAPI · orjson]<br/>HMAC check, Pydantic strict,<br/>rate limit, XADD"]:::container
+    trust["<b>Trust workers</b><br/>[Python · filterpy · scikit-learn]<br/>9-layer pipeline, Kalman,<br/>twin-oracle, reputation"]:::container
+    twin["<b>Twin state service</b><br/>[Python · NetworkX]<br/>Live graph + entity state,<br/>batch writes"]:::container
+    sim["<b>Simulation orchestrator</b><br/>[SimPy 4.1 macro · libsumo 1.27 micro]<br/>Live co-sim + Monte Carlo pool"]:::container
+    opt["<b>Optimizer</b><br/>[OR-Tools · PuLP/HiGHS]<br/>Reroute, reallocate, rank (Pareto/CVaR)"]:::container
+    ml["<b>ML services</b><br/>[LightGBM · statsforecast]<br/>ETA, demand, anomaly"]:::container
+    evalsvc["<b>Fidelity / eval</b><br/>[Python]<br/>Shadow predictions vs actuals,<br/>attack benchmark, backtest"]:::container
+    copilot["<b>Copilot</b><br/>[Python · Anthropic SDK]<br/>Tool-use agent, propose-only"]:::container
+    redis[("<b>Redis 7</b><br/>[Streams · pub/sub · cache]<br/>telemetry.raw / .clean,<br/>scenario-hash cache")]:::db
+    pg[("<b>PostgreSQL 16</b><br/>[PostGIS + TimescaleDB]<br/>Master data, hypertables,<br/>audit, predictions")]:::db
+    obs["<b>Observability</b><br/>[Prometheus · Grafana · Loki · Alertmanager]"]:::container
+  end
+
+  user -- "HTTPS / WSS" --> web
+  web -- "REST, WS /ws/live, SSE" --> api
+  src -- "HMAC-signed batches" --> ingest
+  ingest -- "XADD telemetry.raw" --> redis
+  redis -- "XREADGROUP" --> trust
+  trust -- "XADD telemetry.clean / quarantine" --> redis
+  redis -- "consume clean" --> twin
+  twin -- "batch INSERT" --> pg
+  twin -- "state hashes, pub/sub diffs" --> redis
+  api -- "read state, enqueue jobs, cache" --> redis
+  api -- "SQL (SQLAlchemy)" --> pg
+  sim <-- "snapshot / apply events" --> twin
+  api -- "scenario jobs" --> sim
+  sim -- "MC results" --> opt
+  opt -- "ranked plans" --> api
+  ml -- "ETA / demand priors" --> sim
+  evalsvc -- "predictions, metrics" --> pg
+  api -- "chat + tools" --> copilot
+  copilot -- "tool calls (read / propose)" --> api
+  copilot -- "Messages API" --> llm
+  obs -. "scrape /metrics" .- api
+
+  classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+  classDef container fill:#438dd5,stroke:#2e6295,color:#ffffff
+  classDef db fill:#2f6fa8,stroke:#1f4c75,color:#ffffff
+  classDef ext fill:#8a8a8a,stroke:#6b6b6b,color:#ffffff
+  style AEGIS fill:#f4f8fc,stroke:#1168bd,stroke-dasharray:5 4,color:#0b4884

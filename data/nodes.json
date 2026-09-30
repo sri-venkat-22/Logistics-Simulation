@@ -1,0 +1,338 @@
+[
+  {
+    "id": "PORT_JNPT",
+    "type": "port",
+    "name": "JNPT / Nhava Sheva",
+    "lat": 18.95,
+    "lon": 72.95,
+    "capacity": 60000,
+    "attrs": {
+      "berths": 6
+    },
+    "status": "ok"
+  },
+  {
+    "id": "PORT_MUNDRA",
+    "type": "port",
+    "name": "Mundra Port",
+    "lat": 22.74,
+    "lon": 69.7,
+    "capacity": 55000,
+    "attrs": {
+      "berths": 5
+    },
+    "status": "ok"
+  },
+  {
+    "id": "PORT_CHENNAI",
+    "type": "port",
+    "name": "Chennai Port",
+    "lat": 13.1,
+    "lon": 80.3,
+    "capacity": 40000,
+    "attrs": {
+      "berths": 4
+    },
+    "status": "ok"
+  },
+  {
+    "id": "PORT_VIZAG",
+    "type": "port",
+    "name": "Visakhapatnam Port",
+    "lat": 17.69,
+    "lon": 83.28,
+    "capacity": 30000,
+    "attrs": {
+      "berths": 3
+    },
+    "status": "ok"
+  },
+  {
+    "id": "PORT_KOLKATA",
+    "type": "port",
+    "name": "Kolkata / Haldia",
+    "lat": 22.03,
+    "lon": 88.06,
+    "capacity": 28000,
+    "attrs": {
+      "berths": 3
+    },
+    "status": "ok"
+  },
+  {
+    "id": "PLANT_PATANCHERU",
+    "type": "plant",
+    "name": "Patancheru Pharma API Plant",
+    "lat": 17.53,
+    "lon": 78.26,
+    "capacity": 12000,
+    "attrs": {
+      "family": "vaccine"
+    },
+    "status": "ok"
+  },
+  {
+    "id": "SUP_CHENNAI_AUTO",
+    "type": "supplier",
+    "name": "Sriperumbudur Auto Parts",
+    "lat": 12.96,
+    "lon": 79.95,
+    "capacity": 9000,
+    "attrs": {
+      "family": "electronics"
+    },
+    "status": "ok"
+  },
+  {
+    "id": "SUP_AHMEDABAD_TEX",
+    "type": "supplier",
+    "name": "Ahmedabad Textiles",
+    "lat": 23.02,
+    "lon": 72.57,
+    "capacity": 15000,
+    "attrs": {
+      "family": "fmcg"
+    },
+    "status": "ok"
+  },
+  {
+    "id": "SUP_PUNE_ELEC",
+    "type": "supplier",
+    "name": "Chakan Electronics",
+    "lat": 18.76,
+    "lon": 73.86,
+    "capacity": 8000,
+    "attrs": {
+      "family": "electronics"
+    },
+    "status": "ok"
+  },
+  {
+    "id": "SUP_SHENZHEN",
+    "type": "supplier",
+    "name": "Shenzhen Electronics (overseas)",
+    "lat": 22.54,
+    "lon": 114.06,
+    "capacity": 20000,
+    "attrs": {
+      "family": "electronics"
+    },
+    "status": "ok"
+  },
+  {
+    "id": "DC_HYD_MEDCHAL",
+    "type": "dc",
+    "name": "Hyderabad-Medchal DC (FMCG/e-com)",
+    "lat": 17.63,
+    "lon": 78.48,
+    "capacity": 18000,
+    "attrs": {
+      "cold_chain": false
+    },
+    "status": "ok"
+  },
+  {
+    "id": "DC_HYD_SHAMSHABAD",
+    "type": "dc",
+    "name": "Hyderabad-Shamshabad DC (pharma cold chain)",
+    "lat": 17.24,
+    "lon": 78.43,
+    "capacity": 9000,
+    "attrs": {
+      "cold_chain": true
+    },
+    "status": "ok"
+  },
+  {
+    "id": "DC_BLR",
+    "type": "dc",
+    "name": "Bengaluru-Hoskote DC",
+    "lat": 13.07,
+    "lon": 77.8,
+    "capacity": 16000,
+    "attrs": {
+      "cold_chain": true
+    },
+    "status": "ok"
+  },
+  {
+    "id": "DC_NAGPUR",
+    "type": "dc",
+    "name": "Nagpur Central Hub",
+    "lat": 21.1,
+    "lon": 79.05,
+    "capacity": 22000,
+    "attrs": {
+      "cold_chain": false
+    },
+    "status": "ok"
+  },
+  {
+    "id": "DC_DELHI",
+    "type": "dc",
+    "name": "Delhi-NCR (Gurugram) DC",
+    "lat": 28.46,
+    "lon": 77.03,
+    "capacity": 24000,
+    "attrs": {
+      "cold_chain": true
+    },
+    "status": "ok"
+  },
+  {
+    "id": "DC_PUNE",
+    "type": "dc",
+    "name": "Pune-Chakan DC",
+    "lat": 18.7,
+    "lon": 73.8,
+    "capacity": 14000,
+    "attrs": {
+      "cold_chain": false
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_HYD",
+    "type": "zone",
+    "name": "Hyderabad",
+    "lat": 17.385,
+    "lon": 78.487,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 10.5
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_BLR",
+    "type": "zone",
+    "name": "Bengaluru",
+    "lat": 12.972,
+    "lon": 77.594,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 13.6
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_CHN",
+    "type": "zone",
+    "name": "Chennai",
+    "lat": 13.083,
+    "lon": 80.27,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 11.5
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_MUM",
+    "type": "zone",
+    "name": "Mumbai",
+    "lat": 19.076,
+    "lon": 72.878,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 21.3
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_DEL",
+    "type": "zone",
+    "name": "Delhi",
+    "lat": 28.614,
+    "lon": 77.209,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 32.9
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_KOL",
+    "type": "zone",
+    "name": "Kolkata",
+    "lat": 22.573,
+    "lon": 88.364,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 15.3
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_PUN",
+    "type": "zone",
+    "name": "Pune",
+    "lat": 18.52,
+    "lon": 73.857,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 7.2
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_AMD",
+    "type": "zone",
+    "name": "Ahmedabad",
+    "lat": 23.023,
+    "lon": 72.571,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 8.6
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_VJA",
+    "type": "zone",
+    "name": "Vijayawada",
+    "lat": 16.506,
+    "lon": 80.648,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 2.1
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_VSK",
+    "type": "zone",
+    "name": "Visakhapatnam",
+    "lat": 17.686,
+    "lon": 83.218,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 2.4
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_CBE",
+    "type": "zone",
+    "name": "Coimbatore",
+    "lat": 11.017,
+    "lon": 76.956,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 2.9
+    },
+    "status": "ok"
+  },
+  {
+    "id": "Z_JAI",
+    "type": "zone",
+    "name": "Jaipur",
+    "lat": 26.912,
+    "lon": 75.787,
+    "capacity": 0,
+    "attrs": {
+      "pop_m": 4.1
+    },
+    "status": "ok"
+  }
+]

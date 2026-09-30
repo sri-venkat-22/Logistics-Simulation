@@ -1,0 +1,16 @@
+{
+  "name": "@aegis/doc-tools",
+  "private": true,
+  "type": "module",
+  "description": "Doc build tooling: prototype screenshots, Mermaid diagrams, SRS PDF (uses the system Google Chrome)",
+  "scripts": {
+    "screenshots": "node screenshots.mjs",
+    "diagrams": "node diagrams.mjs",
+    "pdf": "node build-pdf.mjs"
+  },
+  "dependencies": {
+    "@mermaid-js/mermaid-cli": "^12.0.0",
+    "marked": "^18.0.14",
+    "puppeteer-core": "^25.12.0"
+  }
+}

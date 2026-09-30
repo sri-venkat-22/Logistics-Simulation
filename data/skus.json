@@ -1,0 +1,29 @@
+[
+  {
+    "id": "SKU_VAX",
+    "family": "vaccine",
+    "name": "Vaccines (2\u20138 \u00b0C)",
+    "unit_value": 1850,
+    "perishable": true,
+    "shelf_life_h": 720,
+    "cold_chain": true
+  },
+  {
+    "id": "SKU_FMCG",
+    "family": "fmcg",
+    "name": "FMCG staples",
+    "unit_value": 120,
+    "perishable": false,
+    "shelf_life_h": null,
+    "cold_chain": false
+  },
+  {
+    "id": "SKU_ELEC",
+    "family": "electronics",
+    "name": "Consumer electronics",
+    "unit_value": 9400,
+    "perishable": false,
+    "shelf_life_h": null,
+    "cold_chain": false
+  }
+]

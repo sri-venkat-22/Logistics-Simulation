@@ -1,0 +1,43 @@
+%% (b) What-if scenario — natural language or drag-and-drop → Monte Carlo → ranked plans (NFR: 200 reps × 30 d < 20 s)
+sequenceDiagram
+  autonumber
+  actor P as Planner
+  participant UI as Web app (Scenario Lab)
+  participant C as Copilot (Claude tools)
+  participant A as API
+  participant R as Redis (cache + queue)
+  participant S as Sim orchestrator (MC pool, 8 workers)
+  participant TW as Twin state
+  participant O as Optimizer
+
+  alt Copilot
+    P->>C: "What if a cyclone closes Chennai port for 5 days?"
+    C->>A: create_scenario(spec JSON — strict schema)
+  else Drag and drop
+    P->>UI: drop "Cyclone" card on PORT_CHENNAI
+    UI->>A: POST /scenarios {type, target, start, duration_h, severity}
+  end
+  A->>A: validate spec · RBAC(planner) · spec_hash = sha256(canonical JSON)
+  A->>R: GET scenario:{spec_hash}
+  alt cache hit
+    R-->>A: cached results
+  else cache miss
+    A->>R: enqueue job {scenario_id, n_reps: 500}
+    A-->>UI: 202 {scenario_id}
+    UI->>A: WS /ws/scenarios/{id}
+    S->>R: pop job
+    S->>TW: snapshot() — current network, stock, in-flight shipments
+    loop 500 replications (seeds 1000–1499, common random numbers)
+      S->>S: SimPy run 30 sim-days with disruption injector
+      S-->>A: progress (n / 500)
+      A-->>UI: progress ring
+    end
+    S->>S: aggregate P10/P50/P90, TTS/TTR, stock-out probability
+    S->>O: at-risk nodes + surplus nodes
+    O->>O: k-shortest multimodal reroutes · min-cost-flow reallocation · expedite · buffer
+    O->>S: evaluate each candidate (MC, N = 200, same seeds)
+    O-->>A: candidates with KPIs → Pareto front → weighted score
+    A->>R: SET scenario:{spec_hash} (results)
+  end
+  A-->>UI: results: fan chart bands, Pareto, top-3 plans + explanations
+  UI-->>P: Baseline vs Mitigated split maps

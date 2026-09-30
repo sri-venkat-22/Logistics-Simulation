@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.vercel/
+.DS_Store
+*.local
+__pycache__/
+docs/**/.print.html
+*.tsbuildinfo
+.claude/
