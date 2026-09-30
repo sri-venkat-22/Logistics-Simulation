@@ -12,7 +12,7 @@ A two-scale digital twin of an Indian logistics network. SimPy runs the nation-w
 | **Architecture images**: C4 Context + Container; sequences for ingest, what-if, apply plan | [`docs/architecture/`](docs/architecture/) (`.png` + `.svg` + `.mmd` source) |
 | **DFD images**: Level 0 + Level 1 | [`docs/dfd/`](docs/dfd/) |
 | **ERD** (schema from PLAN §7) | [`docs/erd/`](docs/erd/) |
-| **Clickable prototype**: all 9 screens of §6.5, static mock JSON | [`apps/web`](apps/web) · **URL:** _see "Prototype URL" below_ |
+| **Clickable prototype**: all 9 screens of §6.5, static mock JSON | [`apps/web`](apps/web) · **URL:** see [Prototype URL](#prototype-url) |
 | **Prototype screenshots** (20, captured by an automated walkthrough) | [`docs/wireframes/`](docs/wireframes/) |
 | **Tech stack + roadmap**: Gantt Phases 2–11, risk register with mitigations | [`docs/roadmap/ROADMAP.pdf`](docs/roadmap/ROADMAP.pdf) · [`ROADMAP.md`](docs/roadmap/ROADMAP.md) |
 | **Research slide**: 8 papers/repos → design choices | [`docs/pitch/research-slide.png`](docs/pitch/research-slide.png) · [`.pdf`](docs/pitch/research-slide.pdf) |
@@ -20,7 +20,9 @@ A two-scale digital twin of an Indian logistics network. SimPy runs the nation-w
 
 ### Prototype URL
 
-Vercel: **_pending deploy_** (see [Deploying the prototype](#deploying-the-prototype)).
+Vercel: **https://temporary-quick-neon-romn6e8.vercel.app** (deployed 30 Sep 2026)
+
+This is an anonymous *temporary* Vercel deployment: it expires 60 minutes after creation unless it is claimed into a Vercel account. For a permanent URL, claim it or redeploy with `vercel login` (see [Deploying the prototype](#deploying-the-prototype)), then update this line.
 
 > Every number in the prototype is **seeded mock data** (`scripts/gen_mock.py`) and every screen says so with a *PROTOTYPE · MOCK DATA* badge. Geography is real: node coordinates are real sites, and Hyderabad road geometry comes from OpenStreetMap via OSRM.
 
