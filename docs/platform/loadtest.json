@@ -1,0 +1,18 @@
+{
+  "requests": 202,
+  "accepted": 100000,
+  "rejected": 0,
+  "errors": 0,
+  "wall_s": 3.662,
+  "gateway_msgs_s": 27307,
+  "p50_ms": 142.3,
+  "p95_ms": 202.0,
+  "p99_ms": 227.3,
+  "drain_after_s": 6.058,
+  "pipeline_msgs_s": 10288,
+  "messages": 100000,
+  "batch": 500,
+  "concurrency": 8,
+  "machine": "arm64 \u00b7 Darwin \u00b7 8 cores \u00b7 Python 3.11.9",
+  "server": "1 uvicorn worker (ingest + trust + twin-state + Postgres COPY in one process)"
+}

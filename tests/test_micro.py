@@ -77,3 +77,14 @@ def test_recorded_benchmark_faster_than_real_time():
 def test_benchmark_live():
     from sim.micro.bench import main
     assert main(["--trucks", "500", "--cars", "3000", "--minutes", "15"]) == 0
+
+
+
+def test_run_cli():
+    """The Phase 2 CLI still runs (own process: libsumo allows one simulation per process)."""
+    import subprocess
+    import sys
+    r = subprocess.run([sys.executable, "-m", "sim.micro.run", "--minutes", "12", "--trucks", "10"],
+                       capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stderr
+    assert "freight trucks spawned" in r.stdout and "real time" in r.stdout

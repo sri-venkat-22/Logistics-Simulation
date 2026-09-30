@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> int:
             trucks = mt.active_trucks()
             print(f"\n  t={now:6.0f}s  vehicles {mt.t.vehicle.getIDCount():,} (trucks {len(trucks)})  "
                   f"arrived trucks {len(mt.arrivals)}")
-            live = [v for v in watch if v in set(trucks)]
+            live = [v for v in watch if v in set(trucks) and v in mt.trucks]  # still driving (arrived trucks park)
             for row in mt.positions(live):
                 src, dst, _ = mt.trucks[row["id"]]
                 print(f"    {row['id']}  {row['lat']:.5f}N {row['lon']:.5f}E  {row['speed'] * 3.6:5.1f} km/h  "

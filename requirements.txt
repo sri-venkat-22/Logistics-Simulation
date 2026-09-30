@@ -1,4 +1,4 @@
-# Simulation + world building (Phase 2). Python >= 3.11.
+# Simulation, engines (Phases 2-3) and the backend platform (Phase 4). Python >= 3.11.
 simpy==4.1.1
 numpy>=2.0
 networkx>=3.3
@@ -10,4 +10,18 @@ sumolib==1.27.1
 pandas>=2.2          # DataCo demand fit
 pyproj>=3.6          # sumolib lon/lat <-> net x/y
 osmium>=4.0          # clip the Telangana OSM extract
+supplynetpy==0.1.12  # engine verification V3 (cross-check reference)
 pytest>=8.0
+# backend platform (Phase 4)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+redis>=5.0
+sqlalchemy>=2.0
+psycopg[binary]>=3.2
+alembic>=1.13
+geoalchemy2>=0.15
+orjson>=3.10
+msgpack>=1.0
+prometheus-client>=0.20
+httpx>=0.27          # load test + test client
+websockets>=12       # WS client in tools / tests

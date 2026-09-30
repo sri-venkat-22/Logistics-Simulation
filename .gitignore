@@ -11,3 +11,4 @@ docs/**/.print.html
 .pytest_cache/
 data/dataco/*.csv
 sim/micro/hyderabad/osm/
+data/benchmark/telemetry.jsonl.gz

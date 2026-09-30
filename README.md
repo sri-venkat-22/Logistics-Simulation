@@ -47,6 +47,61 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 - **Scenario DSL** (Pydantic v2): 7 templates in `sim/scenarios/templates/`, validated by `python -m sim.scenarios.validate`.
 - Tests: `.venv/bin/python -m pytest` (38 tests).
 
+## Phase 3 — Simulation engines and coupling
+
+Report with all measured results: [`docs/sim/PHASE3.md`](docs/sim/PHASE3.md). Engine verification is SRS §8.
+
+```bash
+.venv/bin/python -m sim.macro.verify
+```
+
+```bash
+.venv/bin/python -m sim.coupling.run --hours 30 --flood
+```
+
+```bash
+.venv/bin/python -m sim.live --hours 48 --every 6
+```
+
+- **Macro engine** (SimPy):
+  - Entities: Supplier (production lines as a `Resource`, random failure/recovery), Port (berths as a `Resource`, customs), Warehouse (per-SKU `Container`, (s,S) / (R,Q) / forecast-driven policies), Lane, DemandZone.
+  - Fulfilment from the nearest DC with stock.
+  - An event log that evidences every KPI, and TTS/TTR per node.
+  - The `Twin.run_until` / `snapshot` / `apply` API.
+- **Monte Carlo**: `monte_carlo(spec, n, seeds)` gives P10/P50/P90 bands with deterministic seeds. 200 reps × 30 days take **2.8 s** on 8 cores (NFR-3 target < 20 s).
+- **Engine verification**: analytic (s,S) fill rate within 0.03%, EOQ minimum exact, and a SupplyNetPy cross-check within 0.01 pp.
+- **Micro engine**: SUMO in its own process behind a command queue (lock-step or time-compressed). Corridor travel-time calibration feeds the macro Hyderabad lanes.
+- **Coupling**: one clock. Macro shipments entering Hyderabad become SUMO trucks, SUMO arrivals become macro receipts, and SUMO road closures update macro lane multipliers. In a 30-hour run, receipt lag was at most one 60 s sync step.
+- **Reality Emulator**: a separately seeded twin with hidden perturbations streams HMAC-signed telemetry (1 Hz GPS, stock counts, ASNs, port status) to a file or the ingest API. An attack injector labels every injection. The red-team benchmark holds **561 labelled attacks** across 10 types (`python -m sim.reality.bench`).
+- Tests: see Phase 4–5 below for the current count.
+
+## Phases 4–5 — Backend platform, ingestion and the live UI
+
+Report with all measured results: [`docs/platform/PHASE4_5.md`](docs/platform/PHASE4_5.md). It needs local Postgres (PostGIS) and Redis; Docker users can run `docker compose up --build` instead, which uses TimescaleDB.
+
+```bash
+createdb aegis && (cd services/api && ../../.venv/bin/alembic upgrade head)
+```
+
+```bash
+AEGIS_TWIN_WARMUP_H=58 .venv/bin/uvicorn services.api.app.main:app --port 8000
+```
+
+```bash
+.venv/bin/python -m sim.reality.run --hours 24 --warmup-h 58 --realtime 60 --http http://localhost:8000 --chaos-redis redis://localhost:6379/3
+```
+
+- **Ingest**: `POST /api/v1/ingest/{telemetry|inventory|supplier}` and `WS /api/v1/ingest/stream`, with HMAC publisher signatures, nonce replay protection and strict layer-1 validation, feeding Redis Streams. Measured **27.3k msgs/s** at the gateway and **10.3k msgs/s end to end** on one process (NFR-1 target ≥ 5k).
+- **Pipeline**: `telemetry.raw` → trust stage (L2 HMAC, L3 dedupe/replay/stale, L4 physics) → `telemetry.clean` → twin-state stage. That stage updates Redis hashes and NetworkX attributes and batches COPY into Postgres (§7 schema via Alembic, TimescaleDB hypertables + compression when available).
+- **WebSocket**: `WS /ws/live` sends a snapshot then 5–10 Hz msgpack diffs (`?format=json` for `wscat`). `WS /ws/scenarios/{id}` streams progress.
+- **REST**: network, nodes, shipments, KPIs; scenarios (worker pool, results cached by spec hash, ≈ 5 ms on repeat), optimise, apply plans (planner role); chaos injection (admin only); trust + eval read models; health, readiness and Prometheus metrics. OpenAPI at http://localhost:8000/docs.
+- **Live UI** (`cd apps/web && npm run dev`):
+  - The Control Tower on the live stream: MapLibre globe, World → India → Hyderabad presets, nodes with pulses, arcs, truck trails, 3-D stock bars, and KPIs / alerts from the API.
+  - Trucks are interpolated at 60 fps.
+  - Scenario Lab v1: template → run → fan chart + KPI deltas → optimise → apply.
+  - With the API down the UI falls back to the Level-1 prototype.
+- Tests: `.venv/bin/python -m pytest` (81 tests), plus `-m slow` (3).
+
 ## Run the prototype locally
 
 ```bash
@@ -97,13 +152,18 @@ The first command regenerates the network data and mock JSON (deterministic; OSR
 
 ```
 apps/web/            React 19 + deck.gl 9.4 + MapLibre 5 prototype (becomes the real frontend)
-sim/macro/           SimPy macro twin: network, demand model, engine, `python -m sim.macro.run`
-sim/micro/           SUMO Hyderabad micro-twin: build, libsumo runner, `run`, `bench`
+sim/macro/           SimPy macro twin: entities, policies, engine (Twin API), KPIs, Monte Carlo, stress test, verification
+sim/micro/           SUMO Hyderabad micro-twin: build, libsumo runner, worker process, calibration, `run`, `bench`
+sim/coupling/        Coupling orchestrator (one clock, macro <-> SUMO bridge), `python -m sim.coupling.run`
+sim/reality/         Reality Emulator, telemetry schemas + HMAC sinks, attack injector, benchmark generator
+sim/live.py          Twin and reality side by side (Phase 3 exit demo)
 sim/scenarios/       Scenario DSL (Pydantic), 7 templates, JSON Schema
-tests/               pytest suite (network, demand, DSL, macro, micro)
-data/                Network (nodes, lanes, skus, sourcing), demand params + festivals, OSRM cache
+services/api/        FastAPI platform: ingest, trust + twin-state stages, WS fan-out, REST, scenario jobs, Alembic migrations, load test
+infra/docker/        API image; docker-compose.yml runs TimescaleDB + Redis + migrations + API (+ emulator profile)
+tests/               pytest suite (network, demand, DSL, engine, Monte Carlo + verification, micro, coupling, reality, API)
+data/                Network (nodes, lanes, skus, sourcing), demand params + festivals, OSRM cache, red-team benchmark
 scripts/gen_mock.py  Seeded mock data for the prototype (incl. a toy Monte Carlo)
-docs/                srs · architecture · dfd · erd · wireframes · roadmap · pitch · adr
+docs/                srs · platform · sim · world · architecture · dfd · erd · wireframes · roadmap · pitch · adr
 tools/               Doc build tooling: Mermaid render, PDF build, prototype screenshots
 PLAN.md              Full build plan (Levels 1–4)
 ```

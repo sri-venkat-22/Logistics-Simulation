@@ -1,15 +1,20 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useNavigate } from "react-router";
 import { Layers, X, ArrowDownLeft, ArrowUpRight, Clock3, History, Eye, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import type { PickingInfo } from "@deck.gl/core";
+import type { MapRef } from "react-map-gl/maplibre";
 import { DeckMap, useAnimationClock, tooltipStyle } from "../components/DeckMap";
 import { Badge, Bar, Button, Dot, Eyebrow, Glass, KpiCard } from "../components/ui";
 import { Chart } from "../components/Chart";
 import { control, network, nodeById, laneById, shipments, skuById, scenario, type NetNode, type Sev } from "../lib/data";
 import { networkLayers, nodeTooltip, predictedStock } from "../lib/networkLayers";
 import { useAegis } from "../lib/store";
+import { useLive, vehicles as liveVehicles, type LiveVehicle } from "../lib/live";
+import { liveLayers } from "../lib/liveLayers";
+import type { ApiLane, ApiNode } from "../lib/api";
+import { CameraPresets, LiveAlertFeed, LiveKpiStrip, LiveNodePanel, LiveStatusBar } from "./ControlTowerLive";
 import { C, VIEW, chartBase, nodeTypeLabel, modeLabel, sevColor } from "../lib/theme";
 
 const LAYER_LABELS: [string, string][] = [
@@ -20,7 +25,7 @@ const LAYER_LABELS: [string, string][] = [
 function LayerPanel() {
   const { layers, toggleLayer } = useAegis();
   return (
-    <Glass className="absolute left-4 top-[150px] w-[184px] py-2.5 z-10">
+    <Glass className="absolute left-4 top-[200px] w-[184px] py-2.5 z-10">
       <div className="flex items-center gap-2 px-3.5 pb-2"><Layers size={13} className="text-ink-3" /><Eyebrow>Layers</Eyebrow></div>
       {LAYER_LABELS.map(([k, label]) => (
         <label key={k} className="flex items-center justify-between px-3.5 h-8 text-[12.5px] text-ink-2 hover:text-ink cursor-pointer">
@@ -227,7 +232,78 @@ function NodeSlideOver({ node }: { node: NetNode }) {
   );
 }
 
+/** Frames per second over the last second (render-loop health for NFR-4). */
+function useFps(t: number) {
+  const r = useRef({ n: 0, last: 0, fps: 0, lastT: -1 });
+  if (t !== r.current.lastT) { r.current.n += 1; r.current.lastT = t; }  // StrictMode renders twice per frame in dev
+  if (t - r.current.last >= 1) { r.current.fps = Math.round(r.current.n / (t - r.current.last)); r.current.n = 0; r.current.last = t; }
+  return r.current.fps;
+}
+
+function LiveTower() {
+  const t = useAnimationClock();
+  const fps = useFps(t);
+  const mapRef = useRef<MapRef>(null);
+  const { layers, selectedNode, selectNode } = useAegis();
+  const { network, inventory, ports, dataVersion } = useLive();
+  const [zoom, setZoom] = useState<number>(VIEW.INDIA.zoom);
+  useEffect(() => {
+    const id = window.setInterval(() => { const z = mapRef.current?.getZoom(); if (z !== undefined) setZoom(Math.round(z * 4) / 4); }, 250);
+    return () => window.clearInterval(id);
+  }, []);
+  const now = performance.now() / 1000;
+  const layerList = network ? liveLayers({ t: now, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports, layers,
+    selectedNode, version: dataVersion, zoom }) : [];
+  return (
+    <div className="absolute inset-0">
+      <DeckMap
+        ref={mapRef}
+        globe
+        initialViewState={VIEW.INDIA}
+        layers={layerList}
+        onClick={(info: PickingInfo) => {
+          const o = info.object as ApiNode | undefined;
+          if (o && "degree" in o) selectNode(o.id); else if (!info.object) selectNode(null);
+        }}
+        getTooltip={(info) => {
+          const o = info.object as Record<string, unknown> | undefined;
+          if (!o) return null;
+          if ("degree" in o) {
+            const n = o as unknown as ApiNode;
+            const inv = Object.entries(inventory).filter(([k]) => k.startsWith(`${n.id}/`))
+              .map(([k, v]) => `<div style="display:flex;justify-content:space-between;gap:14px"><span style="color:#9AA7BD">${k.split("/")[1].replace("SKU_", "")}</span><span style="font-family:JetBrains Mono Variable,monospace">${Math.round(v.on_hand).toLocaleString("en-IN")}</span></div>`).join("");
+            return { html: `<div style="font-weight:600;margin-bottom:4px">${n.name}</div><div style="color:#5D6A82;font-size:11px;margin-bottom:4px">${n.id} · ${n.type} · ${ports[n.id]?.status ?? n.status}</div>${inv}`, style: tooltipStyle };
+          }
+          if ("trail" in o) {
+            const v = o as unknown as LiveVehicle;
+            return { html: `<div style="font-weight:600">${v.id}</div><div style="color:#9AA7BD">${v.scope === "city" ? "Hyderabad · SUMO" : "national road"} · ${v.status}</div><div style="font-family:JetBrains Mono Variable,monospace;margin-top:4px">${v.speed.toFixed(0)} km/h · ${v.heading.toFixed(0)}°${v.shipment ? ` · ${v.shipment}` : ""}</div>`, style: tooltipStyle };
+          }
+          if ("live_mult" in o) {
+            const l = o as unknown as ApiLane;
+            return { html: `<div style="font-weight:600">${l.id} · ${modeLabel[l.mode]}</div><div style="font-family:JetBrains Mono Variable,monospace;margin-top:4px">${l.distance_km.toLocaleString("en-IN")} km · ${l.lt_mean_h} h mean${l.live_mult > 1.001 ? ` · ×${l.live_mult.toFixed(2)}` : ""}</div>`, style: tooltipStyle };
+          }
+          return null;
+        }}
+      />
+      <LiveKpiStrip />
+      <CameraPresets mapRef={mapRef} />
+      <LayerPanel />
+      <AnimatePresence mode="wait">
+        {selectedNode ? <LiveNodePanel key={selectedNode} id={selectedNode} /> : <LiveAlertFeed key="alerts" />}
+      </AnimatePresence>
+      <LiveStatusBar fps={fps} />
+    </div>
+  );
+}
+
 export default function ControlTower() {
+  const offline = useLive((s) => s.status === "offline" && !s.network);  // fall back to the prototype only when the API is down
+  return offline ? <MockTower /> : <LiveTower />;
+}
+
+/** Level-1 prototype view on seeded mock data (used when the API is not reachable). */
+function MockTower() {
+
   const t = useAnimationClock();
   const { layers, selectedNode, selectNode, timeOffsetH, appliedPlan } = useAegis();
   const node = selectedNode ? nodeById.get(selectedNode) : undefined;

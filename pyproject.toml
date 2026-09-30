@@ -6,5 +6,6 @@ requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
-markers = ["slow: long-running benchmarks (select with -m slow)"]
+addopts = "-q -m 'not slow'"
+markers = ["slow: long-running benchmarks (run with: pytest -m slow)"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`:DeprecationWarning"]

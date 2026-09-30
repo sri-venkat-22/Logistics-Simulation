@@ -1,0 +1,612 @@
+{
+ "seed": 1042,
+ "start": "2026-10-15T00:00:00+05:30",
+ "t_h": 144.0,
+ "window": {
+  "from_ts": "2026-10-20T00:00:00.000+05:30",
+  "to_ts": "2026-10-21T00:00:00.000+05:30"
+ },
+ "perturbations": [
+  {
+   "kind": "lane_bias",
+   "lane": "L005",
+   "multiplier": 1.0013,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L006",
+   "multiplier": 1.0867,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L009",
+   "multiplier": 1.0977,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L011",
+   "multiplier": 1.0575,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L015",
+   "multiplier": 1.1188,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L016",
+   "multiplier": 1.0749,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L017",
+   "multiplier": 1.1002,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L019",
+   "multiplier": 1.0273,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L020",
+   "multiplier": 1.0046,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L021",
+   "multiplier": 1.1299,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L023",
+   "multiplier": 1.1268,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L024",
+   "multiplier": 1.125,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L025",
+   "multiplier": 1.144,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L026",
+   "multiplier": 1.084,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L028",
+   "multiplier": 1.0764,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L030",
+   "multiplier": 1.0293,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L031",
+   "multiplier": 1.1401,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L032",
+   "multiplier": 1.1319,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L033",
+   "multiplier": 1.014,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L034",
+   "multiplier": 1.0579,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L035",
+   "multiplier": 1.1138,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L036",
+   "multiplier": 1.0251,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L037",
+   "multiplier": 1.0114,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L038",
+   "multiplier": 1.0063,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L039",
+   "multiplier": 1.1182,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L040",
+   "multiplier": 1.0078,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L043",
+   "multiplier": 1.0772,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L044",
+   "multiplier": 1.0722,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L046",
+   "multiplier": 1.0804,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L047",
+   "multiplier": 1.0748,
+   "t_h": 0.0
+  },
+  {
+   "kind": "lane_bias",
+   "lane": "L049",
+   "multiplier": 1.1311,
+   "t_h": 0.0
+  },
+  {
+   "kind": "demand_drift",
+   "t_h": 0,
+   "ts": "2026-10-15T00:00:00.000+05:30",
+   "levels": {
+    "Z_HYD": 1.0093,
+    "Z_BLR": 1.003,
+    "Z_CHN": 0.9744,
+    "Z_MUM": 0.9502,
+    "Z_DEL": 0.9733,
+    "Z_KOL": 1.0426,
+    "Z_PUN": 1.0063,
+    "Z_AMD": 0.9918,
+    "Z_VJA": 1.0275,
+    "Z_VSK": 0.9934,
+    "Z_CBE": 1.0165,
+    "Z_JAI": 1.0069
+   }
+  },
+  {
+   "kind": "incident",
+   "lane": "L033",
+   "multiplier": 2.528,
+   "t_h": 14.9687,
+   "ts": "2026-10-15T14:58:07.257+05:30",
+   "duration_h": 10.57,
+   "effect": "E2"
+  },
+  {
+   "kind": "demand_drift",
+   "t_h": 24.0,
+   "ts": "2026-10-16T00:00:00.000+05:30",
+   "levels": {
+    "Z_HYD": 1.0109,
+    "Z_BLR": 0.9881,
+    "Z_CHN": 0.9582,
+    "Z_MUM": 0.9421,
+    "Z_DEL": 0.9759,
+    "Z_KOL": 1.0644,
+    "Z_PUN": 1.0185,
+    "Z_AMD": 0.9888,
+    "Z_VJA": 1.0579,
+    "Z_VSK": 0.9887,
+    "Z_CBE": 1.0216,
+    "Z_JAI": 1.0014
+   }
+  },
+  {
+   "kind": "demand_drift",
+   "t_h": 48.0,
+   "ts": "2026-10-17T00:00:00.000+05:30",
+   "levels": {
+    "Z_HYD": 1.0129,
+    "Z_BLR": 1.0086,
+    "Z_CHN": 0.9633,
+    "Z_MUM": 0.9527,
+    "Z_DEL": 0.9869,
+    "Z_KOL": 1.0259,
+    "Z_PUN": 1.0494,
+    "Z_AMD": 0.9991,
+    "Z_VJA": 1.0832,
+    "Z_VSK": 1.0095,
+    "Z_CBE": 1.0454,
+    "Z_JAI": 0.9711
+   }
+  },
+  {
+   "kind": "incident",
+   "lane": "L005",
+   "multiplier": 2.67,
+   "t_h": 51.6533,
+   "ts": "2026-10-17T03:39:11.821+05:30",
+   "duration_h": 5.86,
+   "effect": "E5"
+  },
+  {
+   "kind": "incident",
+   "lane": "L020",
+   "multiplier": 2.703,
+   "t_h": 53.4673,
+   "ts": "2026-10-17T05:28:02.158+05:30",
+   "duration_h": 23.39,
+   "effect": "E6"
+  },
+  {
+   "kind": "demand_drift",
+   "t_h": 72.0,
+   "ts": "2026-10-18T00:00:00.000+05:30",
+   "levels": {
+    "Z_HYD": 1.0197,
+    "Z_BLR": 0.9993,
+    "Z_CHN": 0.9531,
+    "Z_MUM": 0.9966,
+    "Z_DEL": 0.9699,
+    "Z_KOL": 1.0277,
+    "Z_PUN": 1.0509,
+    "Z_AMD": 1.0015,
+    "Z_VJA": 1.1115,
+    "Z_VSK": 0.9996,
+    "Z_CBE": 1.0195,
+    "Z_JAI": 0.9963
+   }
+  },
+  {
+   "kind": "incident",
+   "lane": "L021",
+   "multiplier": 1.944,
+   "t_h": 74.1674,
+   "ts": "2026-10-18T02:10:02.610+05:30",
+   "duration_h": 11.78,
+   "effect": "E8"
+  },
+  {
+   "kind": "demand_drift",
+   "t_h": 96.0,
+   "ts": "2026-10-19T00:00:00.000+05:30",
+   "levels": {
+    "Z_HYD": 1.0418,
+    "Z_BLR": 1.0279,
+    "Z_CHN": 0.9554,
+    "Z_MUM": 0.983,
+    "Z_DEL": 0.9681,
+    "Z_KOL": 1.0027,
+    "Z_PUN": 1.0218,
+    "Z_AMD": 1.0388,
+    "Z_VJA": 1.1018,
+    "Z_VSK": 1.038,
+    "Z_CBE": 1.0205,
+    "Z_JAI": 1.0038
+   }
+  },
+  {
+   "kind": "incident",
+   "lane": "L012",
+   "multiplier": 2.155,
+   "t_h": 103.9237,
+   "ts": "2026-10-19T07:55:25.275+05:30",
+   "duration_h": 20.82,
+   "effect": "E10"
+  },
+  {
+   "kind": "incident",
+   "lane": "L011",
+   "multiplier": 2.362,
+   "t_h": 116.1915,
+   "ts": "2026-10-19T20:11:29.366+05:30",
+   "duration_h": 4.59,
+   "effect": "E11"
+  },
+  {
+   "kind": "demand_drift",
+   "t_h": 120.0,
+   "ts": "2026-10-20T00:00:00.000+05:30",
+   "levels": {
+    "Z_HYD": 1.0578,
+    "Z_BLR": 1.0245,
+    "Z_CHN": 0.9528,
+    "Z_MUM": 0.98,
+    "Z_DEL": 0.9448,
+    "Z_KOL": 0.9796,
+    "Z_PUN": 1.0176,
+    "Z_AMD": 1.051,
+    "Z_VJA": 1.1181,
+    "Z_VSK": 1.0568,
+    "Z_CBE": 1.0427,
+    "Z_JAI": 0.986
+   }
+  }
+ ],
+ "counts": {
+  "clean": 205931,
+  "attacked": 12839,
+  "dropped": 23003,
+  "by_kind": {
+   "gps": 216991,
+   "port": 129,
+   "stock": 1632,
+   "asn": 18
+  }
+ },
+ "hidden_effects": [
+  {
+   "id": "E1",
+   "label": "hidden demand drift",
+   "kind": "hidden",
+   "type": "demand_drift",
+   "target": "*",
+   "start_h": 0,
+   "end_h": 24.0,
+   "nodes": [],
+   "lanes": [],
+   "zones": [
+    "Z_AMD",
+    "Z_BLR",
+    "Z_CBE",
+    "Z_CHN",
+    "Z_DEL",
+    "Z_HYD",
+    "Z_JAI",
+    "Z_KOL",
+    "Z_MUM",
+    "Z_PUN",
+    "Z_VJA",
+    "Z_VSK"
+   ]
+  },
+  {
+   "id": "E2",
+   "label": "hidden incident L033",
+   "kind": "hidden",
+   "type": "incident",
+   "target": "L033",
+   "start_h": 14.969,
+   "end_h": 25.535,
+   "nodes": [],
+   "lanes": [
+    "L033"
+   ],
+   "zones": []
+  },
+  {
+   "id": "E3",
+   "label": "hidden demand drift",
+   "kind": "hidden",
+   "type": "demand_drift",
+   "target": "*",
+   "start_h": 24.0,
+   "end_h": 48.0,
+   "nodes": [],
+   "lanes": [],
+   "zones": [
+    "Z_AMD",
+    "Z_BLR",
+    "Z_CBE",
+    "Z_CHN",
+    "Z_DEL",
+    "Z_HYD",
+    "Z_JAI",
+    "Z_KOL",
+    "Z_MUM",
+    "Z_PUN",
+    "Z_VJA",
+    "Z_VSK"
+   ]
+  },
+  {
+   "id": "E4",
+   "label": "hidden demand drift",
+   "kind": "hidden",
+   "type": "demand_drift",
+   "target": "*",
+   "start_h": 48.0,
+   "end_h": 72.0,
+   "nodes": [],
+   "lanes": [],
+   "zones": [
+    "Z_AMD",
+    "Z_BLR",
+    "Z_CBE",
+    "Z_CHN",
+    "Z_DEL",
+    "Z_HYD",
+    "Z_JAI",
+    "Z_KOL",
+    "Z_MUM",
+    "Z_PUN",
+    "Z_VJA",
+    "Z_VSK"
+   ]
+  },
+  {
+   "id": "E5",
+   "label": "hidden incident L005",
+   "kind": "hidden",
+   "type": "incident",
+   "target": "L005",
+   "start_h": 51.653,
+   "end_h": 57.518,
+   "nodes": [],
+   "lanes": [
+    "L005"
+   ],
+   "zones": []
+  },
+  {
+   "id": "E6",
+   "label": "hidden incident L020",
+   "kind": "hidden",
+   "type": "incident",
+   "target": "L020",
+   "start_h": 53.467,
+   "end_h": 76.861,
+   "nodes": [],
+   "lanes": [
+    "L020"
+   ],
+   "zones": []
+  },
+  {
+   "id": "E7",
+   "label": "hidden demand drift",
+   "kind": "hidden",
+   "type": "demand_drift",
+   "target": "*",
+   "start_h": 72.0,
+   "end_h": 96.0,
+   "nodes": [],
+   "lanes": [],
+   "zones": [
+    "Z_AMD",
+    "Z_BLR",
+    "Z_CBE",
+    "Z_CHN",
+    "Z_DEL",
+    "Z_HYD",
+    "Z_JAI",
+    "Z_KOL",
+    "Z_MUM",
+    "Z_PUN",
+    "Z_VJA",
+    "Z_VSK"
+   ]
+  },
+  {
+   "id": "E8",
+   "label": "hidden incident L021",
+   "kind": "hidden",
+   "type": "incident",
+   "target": "L021",
+   "start_h": 74.167,
+   "end_h": 85.942,
+   "nodes": [],
+   "lanes": [
+    "L021"
+   ],
+   "zones": []
+  },
+  {
+   "id": "E9",
+   "label": "hidden demand drift",
+   "kind": "hidden",
+   "type": "demand_drift",
+   "target": "*",
+   "start_h": 96.0,
+   "end_h": 120.0,
+   "nodes": [],
+   "lanes": [],
+   "zones": [
+    "Z_AMD",
+    "Z_BLR",
+    "Z_CBE",
+    "Z_CHN",
+    "Z_DEL",
+    "Z_HYD",
+    "Z_JAI",
+    "Z_KOL",
+    "Z_MUM",
+    "Z_PUN",
+    "Z_VJA",
+    "Z_VSK"
+   ]
+  },
+  {
+   "id": "E10",
+   "label": "hidden incident L012",
+   "kind": "hidden",
+   "type": "incident",
+   "target": "L012",
+   "start_h": 103.924,
+   "end_h": 124.74,
+   "nodes": [],
+   "lanes": [
+    "L012"
+   ],
+   "zones": []
+  },
+  {
+   "id": "E11",
+   "label": "hidden incident L011",
+   "kind": "hidden",
+   "type": "incident",
+   "target": "L011",
+   "start_h": 116.191,
+   "end_h": 120.777,
+   "nodes": [],
+   "lanes": [
+    "L011"
+   ],
+   "zones": []
+  },
+  {
+   "id": "E12",
+   "label": "hidden demand drift",
+   "kind": "hidden",
+   "type": "demand_drift",
+   "target": "*",
+   "start_h": 120.0,
+   "end_h": null,
+   "nodes": [],
+   "lanes": [],
+   "zones": [
+    "Z_AMD",
+    "Z_BLR",
+    "Z_CBE",
+    "Z_CHN",
+    "Z_DEL",
+    "Z_HYD",
+    "Z_JAI",
+    "Z_KOL",
+    "Z_MUM",
+    "Z_PUN",
+    "Z_VJA",
+    "Z_VSK"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,119 @@
+{
+  "benchmark": "AEGIS red-team telemetry benchmark",
+  "engine": "macro-3.0",
+  "generated": "2026-09-30T23:30:22+05:30",
+  "wall_s": 16.4,
+  "config": {
+    "attacks": 600,
+    "attack_seed": 7,
+    "world_seed": 1042,
+    "start": "2026-10-15T00:00:00+05:30",
+    "window_from": "2026-10-20T00:00:00.000+05:30",
+    "window_to": "2026-10-21T00:00:00.000+05:30",
+    "hours": 24.0,
+    "national_gps_period_s": 5.0,
+    "city_gps_period_s": 1.0,
+    "micro_twin": true,
+    "gps_period_s": 1.0,
+    "gps_noise_m": 4.0,
+    "telemetry_from_h": 120.0,
+    "multipath_p": 0.003,
+    "stock_period_s": 900,
+    "port_period_s": 3600,
+    "micro": true
+  },
+  "messages": {
+    "published": 218770,
+    "malicious": 12839,
+    "clean": 205931,
+    "dropped_by_blackout": 23003,
+    "by_kind": {
+      "gps": 216991,
+      "port": 129,
+      "stock": 1632,
+      "asn": 18
+    }
+  },
+  "attacks": {
+    "scheduled": 600,
+    "done": 561,
+    "skipped": 39,
+    "by_type": {
+      "gps_teleport": {
+        "scheduled": 53,
+        "done": 52,
+        "msgs": 153,
+        "expected_layer": "L4",
+        "expected_reason": "PHYSICS_TELEPORT"
+      },
+      "gps_drift": {
+        "scheduled": 72,
+        "done": 72,
+        "msgs": 9924,
+        "expected_layer": "L6",
+        "expected_reason": "KALMAN_GATE"
+      },
+      "replay": {
+        "scheduled": 58,
+        "done": 58,
+        "msgs": 1065,
+        "expected_layer": "L3",
+        "expected_reason": "REPLAY_NONCE"
+      },
+      "duplicate": {
+        "scheduled": 74,
+        "done": 72,
+        "msgs": 359,
+        "expected_layer": "L3",
+        "expected_reason": "DUPLICATE_ID"
+      },
+      "missing_fields": {
+        "scheduled": 87,
+        "done": 82,
+        "msgs": 483,
+        "expected_layer": "L1",
+        "expected_reason": "SCHEMA_MISSING"
+      },
+      "nan_negative": {
+        "scheduled": 81,
+        "done": 76,
+        "msgs": 420,
+        "expected_layer": "L1",
+        "expected_reason": "SCHEMA_RANGE"
+      },
+      "inflated_asn": {
+        "scheduled": 28,
+        "done": 10,
+        "msgs": 10,
+        "expected_layer": "L8",
+        "expected_reason": "ASN_OUTLIER"
+      },
+      "stale_timestamp": {
+        "scheduled": 76,
+        "done": 71,
+        "msgs": 425,
+        "expected_layer": "L3",
+        "expected_reason": "STALE_TS"
+      },
+      "blackout": {
+        "scheduled": 49,
+        "done": 49,
+        "msgs": 23003,
+        "expected_layer": "L9",
+        "expected_reason": "SLA_SILENT"
+      },
+      "cascade_failure": {
+        "scheduled": 22,
+        "done": 19,
+        "msgs": 0,
+        "expected_layer": "L7",
+        "expected_reason": "TWIN_ENVELOPE"
+      }
+    }
+  },
+  "files": {
+    "telemetry.jsonl.gz": "d6e3cbcb6991ee4bf59903662a1a99148eeebe222bc262b74f3bb2ac995e827a",
+    "labels.jsonl": "c1b8fb6c63f257ac2082ef7283da7bd27e45ad82118f45fbf70a8bf69f31907a",
+    "truth.json": "d53d20f9f0fa800132ea15a6169324dbd4642c6d398fe8b4fff60728bc9a4232"
+  }
+}

@@ -55,6 +55,7 @@ class Sku:
     base_demand_per_million_day: float
     holding_rate_yr: float
     stockout_penalty: float
+    order_cost: float = 0.0  # fixed cost per replenishment order (0 in the reference data; EOQ check sets it)
 
 
 @dataclass(frozen=True)
@@ -67,11 +68,17 @@ class Path_:
 
 class Network:
     def __init__(self, data_dir: Path = DATA):
-        raw_nodes = json.loads((data_dir / "nodes.json").read_text())
-        raw_lanes = json.loads((data_dir / "lanes.json").read_text())
-        raw_skus = json.loads((data_dir / "skus.json").read_text())
-        sourcing = json.loads((data_dir / "sourcing.json").read_text())
+        self._build(json.loads((data_dir / "nodes.json").read_text()), json.loads((data_dir / "lanes.json").read_text()),
+                    json.loads((data_dir / "skus.json").read_text()), json.loads((data_dir / "sourcing.json").read_text()))
 
+    @classmethod
+    def from_raw(cls, nodes: list[dict], lanes: list[dict], skus: list[dict], sourcing: dict) -> "Network":
+        """Build from in-memory dicts in the data/ file formats (toy networks for engine verification)."""
+        net = cls.__new__(cls)
+        net._build(nodes, lanes, skus, sourcing)
+        return net
+
+    def _build(self, raw_nodes: list[dict], raw_lanes: list[dict], raw_skus: list[dict], sourcing: dict) -> None:
         self.nodes = {n["id"]: Node(n["id"], n["type"], n["name"], n["lat"], n["lon"], n["capacity"], n.get("attrs", {}))
                       for n in raw_nodes}
         self.lanes = {l["id"]: Lane(l["id"], l["from_id"], l["to_id"], l["mode"], l["distance_km"], l["cost_per_unit_km"],
@@ -79,7 +86,7 @@ class Network:
                                     l["lt_mean_h"], l["lt_p90_h"]) for l in raw_lanes}
         self.skus = {s["id"]: Sku(s["id"], s["family"], s["name"], s["unit_value"], s["unit_weight_kg"], s["cold_chain"],
                                   s["sea_imported"], s["base_demand_per_million_day"], s["holding_rate_yr"],
-                                  s["stockout_penalty"]) for s in raw_skus}
+                                  s["stockout_penalty"], s.get("order_cost", 0.0)) for s in raw_skus}
 
         def to_path(p: dict) -> Path_:
             return Path_(p["source"], tuple(p["nodes"]), tuple(p["lanes"]), p["lead_mean_h"])
@@ -90,6 +97,11 @@ class Network:
         # (zone, sku) -> (dc, lane)
         self.serving: dict[tuple[str, str], tuple[str, str]] = {
             (s["zone"], s["sku"]): (s["dc"], s["lane"]) for s in sourcing["serving"]}
+        # (zone, sku) -> [(dc, lane), ...] primary first, then backups nearest-first (fulfilment falls back along it)
+        self.serving_options: dict[tuple[str, str], list[tuple[str, str]]] = {}
+        for s in sourcing["serving"]:
+            backups = sorted(((b["dc"], b["lane"]) for b in s.get("backup", [])), key=lambda x: self.lanes[x[1]].distance_km)
+            self.serving_options[(s["zone"], s["sku"])] = [(s["dc"], s["lane"]), *backups]
 
         self.graph = nx.MultiDiGraph()
         for n in self.nodes.values():
@@ -107,7 +119,7 @@ class Network:
     def validate(self) -> None:
         for l in self.lanes.values():
             assert l.from_id in self.nodes and l.to_id in self.nodes, f"lane {l.id} references unknown node"
-            assert l.lt_mean_h > 0 and 0 < l.lt_sigma < 1.5, f"lane {l.id} has bad lead-time params"
+            assert l.lt_mean_h > 0 and 0 <= l.lt_sigma < 1.5, f"lane {l.id} has bad lead-time params"  # sigma 0 = deterministic
             # lognormal consistency: E[T] = exp(mu + sigma^2 / 2)
             assert abs(math.exp(l.lt_mu + l.lt_sigma**2 / 2) - l.lt_mean_h) < 0.05 * l.lt_mean_h + 0.1, l.id
         for (dc, sku), paths in self.replenishment.items():

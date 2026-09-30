@@ -1,0 +1,46 @@
+# AEGIS Twin — local stack with TimescaleDB (hypertables + compression) and Redis.
+#   docker compose up --build            # db, redis, migrations, api (http://localhost:8000/docs)
+#   docker compose --profile demo up     # + the Reality Emulator streaming into the API
+# The web UI runs outside Docker during development (cd apps/web && npm run dev).
+# Note: authored without Docker available on the dev machine; the same services run natively (see docs/platform).
+services:
+  db:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: aegis
+    ports: ["5433:5432"]
+    volumes: [dbdata:/home/postgres/pgdata]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 5s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    ports: ["6380:6379"]
+  migrate:
+    build: {context: ., dockerfile: infra/docker/api.Dockerfile}
+    environment:
+      AEGIS_DB_URL: postgresql+psycopg://aegis:aegis@db/aegis
+    working_dir: /app/services/api
+    command: ["alembic", "upgrade", "head"]
+    depends_on: {db: {condition: service_healthy}}
+  api:
+    build: {context: ., dockerfile: infra/docker/api.Dockerfile}
+    environment:
+      AEGIS_DB_URL: postgresql+psycopg://aegis:aegis@db/aegis
+      AEGIS_REDIS_URL: redis://redis:6379/0
+      AEGIS_TWIN_WARMUP_H: "58"
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_started}
+  emulator:
+    profiles: [demo]
+    build: {context: ., dockerfile: infra/docker/api.Dockerfile}
+    command: ["python", "-m", "sim.reality.run", "--hours", "24", "--warmup-h", "58", "--realtime", "60",
+              "--http", "http://api:8000", "--chaos-redis", "redis://redis:6379/0", "--gps-period", "2", "--no-micro"]
+    depends_on: {api: {condition: service_healthy}}
+volumes:
+  dbdata:

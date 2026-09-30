@@ -5,8 +5,10 @@ This walks you from a fresh clone to every runnable part of the project:
 1. the clickable **prototype** (web UI);
 2. the **macro twin** (nation-wide SimPy simulation);
 3. the **micro twin** (SUMO traffic simulation of Hyderabad);
-4. the **tests**;
-5. **regenerating** data, diagrams and docs.
+4. the **Phase 3 engines**: Monte Carlo, engine verification, the coupled twin and the Reality Emulator;
+5. the **backend platform and live UI** (Phases 4–5): API, ingest pipeline, WebSocket, live Control Tower and Scenario Lab;
+6. the **tests**;
+7. **regenerating** data, diagrams and docs.
 
 Sections 1 and 2 are independent: you can run the web prototype without Python, and the simulations without Node.
 
@@ -20,6 +22,10 @@ Sections 1 and 2 are independent: you can run the web prototype without Python, 
 | Node.js | 20 or newer | web prototype, doc tools | `node --version` |
 | Python | 3.11 or newer | simulations, tests | `python3 --version` |
 | Google Chrome | any | *only* for regenerating diagrams, PDFs, screenshots | — |
+| PostgreSQL + PostGIS | 16+ | the API's database (Phase 4) | `psql --version` |
+| Redis | 7+ | the API's streams and cache (Phase 4) | `redis-cli ping` |
+
+On macOS: `brew install postgresql@17 postgis redis && brew services start postgresql@17 && brew services start redis`. With Docker you can use `docker compose up --build` instead (TimescaleDB + Redis + API).
 
 Disk: about 1 GB with all dependencies. Internet is needed for installs and for the map tiles in the prototype.
 
@@ -47,7 +53,7 @@ cd apps/web && npm install
 npm run dev
 ```
 
-Open **http://localhost:5173**. You should see the *Control Tower*: a dark map of India with animated lanes, KPI cards and an alert feed. Every screen carries a **PROTOTYPE · MOCK DATA** badge because it runs on seeded mock JSON (`apps/web/src/mock/`), not the live simulation (that wiring is Phase 4–5).
+Open **http://localhost:5173**. You should see the *Control Tower*: a dark map of India with animated lanes, KPI cards and an alert feed. Without the API running, every screen carries a **PROTOTYPE · MOCK DATA** badge and runs on seeded mock JSON (`apps/web/src/mock/`). Start the API (section 7) and the Control Tower and Scenario Lab switch to live data and show **LIVE · API**.
 
 **Keyboard**
 
@@ -248,21 +254,146 @@ It prints the peak number of simultaneous vehicles and the real-time factor. A r
 
 ---
 
-## 6. Tests
+## 6. Engines, coupling and the Reality Emulator (Phase 3)
+
+Measured results for everything below are in `docs/sim/PHASE3.md`.
+
+### 6.1 Engine verification
+
+Checks the macro engine against known answers: an analytic (s,S) fill rate, an EOQ cost curve, and a cross-check against SupplyNetPy. It takes about 20 s.
+
+```bash
+.venv/bin/python -m sim.macro.verify
+```
+
+You should see three `PASS` lines. Add `--quick` for a 5-second version.
+
+### 6.2 Which nodes can the network not survive? (TTS / TTR)
+
+```bash
+.venv/bin/python -m sim.macro.resilience
+```
+
+Each node is taken down in turn. The table shows how long the network survives (TTS), how long the node needs to recover (TTR), whether it is exposed (TTS < TTR), and a Risk Exposure Index. The Ahmedabad FMCG supplier comes out on top.
+
+### 6.3 Monte Carlo from Python
+
+```bash
+.venv/bin/python -c "from sim.macro.montecarlo import RunSpec, monte_carlo; from sim.scenarios.dsl import Scenario; r = monte_carlo(RunSpec(days=30, scenarios=[Scenario.load('sim/scenarios/templates/cyclone.json')]), n=200); print(r['wall_s'], 's', r['kpis']['fill_rate'])"
+```
+
+It runs 200 replications on all cores (about 3 s on 8 cores) and prints the fill-rate P10/P50/P90. The same seeds always give the same bands.
+
+### 6.4 The coupled twin (SimPy + SUMO under one clock)
+
+```bash
+.venv/bin/python -m sim.coupling.run --hours 30 --flood
+```
+
+Every line marked `→ SUMO` is a macro shipment turning into trucks on Hyderabad roads. Every `← macro` line is those trucks arriving and the macro twin booking the receipt, with the clock lag, which stays under the 60 s sync step. `--flood` closes the ORR edges from the road_flood template in SUMO and shows the lane-multiplier updates. Add `--realtime 60` to run at demo pace (1 sim-minute per wall-second), or `--background` to load the background car traffic.
+
+### 6.5 SUMO corridor calibration
+
+```bash
+.venv/bin/python -m sim.micro.calibrate
+```
+
+This takes about 2.5 min: 84 trucks drive the five in-city corridors. It writes `sim/micro/hyderabad/calibration.json`, which the macro twin then uses for its Hyderabad lanes. The file is committed, so run this only after changing the SUMO network.
+
+### 6.6 The Reality Emulator
+
+Stream one simulated hour of telemetry, with 20 labelled attacks, to a file:
+
+```bash
+.venv/bin/python -m sim.reality.run --hours 1 --warmup-h 12 --attacks 20 --out telemetry.jsonl.gz --truth truth.json
+```
+
+To send it to the ingest API instead (Phase 4), use `--http http://localhost:8000`. Batches are HMAC-signed.
+
+Twin and reality side by side (the Phase 3 exit demo):
+
+```bash
+.venv/bin/python -m sim.live --hours 48 --every 6
+```
+
+Regenerate the red-team benchmark (about 14 s). The SHA-256 hashes must match `data/benchmark/manifest.json`:
+
+```bash
+.venv/bin/python -m sim.reality.bench
+```
+
+---
+
+## 7. Backend platform and the live UI (Phases 4–5)
+
+Measured results: `docs/platform/PHASE4_5.md`. You need Postgres and Redis running (see Prerequisites).
+
+**7.1 Create the database and run the migrations**
+
+```bash
+createdb aegis && createdb aegis_test
+```
+
+```bash
+cd services/api && ../../.venv/bin/alembic upgrade head && ../../.venv/bin/alembic -x db_url=postgresql+psycopg://localhost/aegis_test upgrade head && cd ../..
+```
+
+**7.2 Start the API** (terminal 1). OpenAPI docs are at http://localhost:8000/docs.
+
+```bash
+AEGIS_TWIN_WARMUP_H=58 .venv/bin/uvicorn services.api.app.main:app --port 8000
+```
+
+**7.3 Stream the Reality Emulator into it** (terminal 2). This runs 24 simulated hours at 1 sim-minute per second, after a fast 58-hour warm-up that matches the twin's.
+
+```bash
+.venv/bin/python -m sim.reality.run --hours 24 --warmup-h 58 --realtime 60 --http http://localhost:8000 --chaos-redis redis://localhost:6379/3 --gps-period 2
+```
+
+**7.4 Watch the live diffs** (the Phase 4 exit check):
+
+```bash
+npx wscat -c "ws://localhost:8000/ws/live?format=json"
+```
+
+**7.5 Open the UI** (terminal 3). With the API up, the Control Tower and Scenario Lab show **LIVE · API**:
+
+```bash
+cd apps/web && npm run dev
+```
+
+- In the Control Tower, `w` / `i` / `h` fly the camera to World, India or Hyderabad.
+- In the Scenario Lab, pick a template, press **Run**, then **Optimise** and **Apply** a plan.
+
+**7.6 Inject an attack** (admin token) and watch it get quarantined in the alert feed:
+
+```bash
+curl -X POST localhost:8000/api/v1/chaos/inject -H "Authorization: Bearer dev-admin" -H "Content-Type: application/json" -d '{"type":"gps_teleport"}'
+```
+
+**7.7 Load test** (it starts its own isolated API on port 8100):
+
+```bash
+.venv/bin/python -m services.api.loadtest
+```
+
+---
+
+## 8. Tests
 
 ```bash
 .venv/bin/python -m pytest
 ```
 
-That runs 38 tests covering the network data, demand model, scenario DSL, macro twin behaviour and micro twin (it takes about 20 s). To skip the slow live SUMO benchmark:
+That runs 81 tests covering the network data, demand model, scenario DSL, macro engine, Monte Carlo and engine verification, micro twin, coupling, Reality Emulator and the API (about 40 s). The API tests need Redis and the `aegis_test` database, and are skipped otherwise. Three slow tests are skipped by default: the live SUMO benchmark, NFR-3 (200 Monte Carlo reps in under 20 s) and byte-identical benchmark regeneration. To run them:
 
 ```bash
-.venv/bin/python -m pytest -m "not slow"
+.venv/bin/python -m pytest -m slow
 ```
 
 ---
 
-## 7. Regenerating data (only if you change inputs)
+## 9. Regenerating data (only if you change inputs)
 
 Everything generated is committed, so you only need these if you edit the sources.
 
@@ -316,7 +447,7 @@ node screenshots.mjs http://localhost:5173/ ../docs/wireframes
 
 ---
 
-## 8. Deploy the prototype (Vercel)
+## 10. Deploy the prototype (Vercel)
 
 Log in to Vercel once:
 
@@ -334,7 +465,7 @@ The app uses hash routing, so it works on any static host. You can also upload `
 
 ---
 
-## 9. Troubleshooting
+## 11. Troubleshooting
 
 | Symptom | Fix |
 |---|---|
@@ -344,19 +475,29 @@ The app uses hash routing, so it works on any static host. You can also upload `
 | `micro-twin not built` | Run `.venv/bin/python -m sim.micro.build_hyderabad`. |
 | `Warning: Environment variable SUMO_HOME is not set` | Harmless. The code sets it for the bundled SUMO. |
 | sumo-gui won't open on macOS | Install XQuartz, log out and in again, or use the headless run. |
+| UI still shows PROTOTYPE · MOCK DATA with the API up | Check http://localhost:8000/healthz. For a non-default URL set `VITE_API_URL` in `apps/web/.env.local` (see `.env.example`) and restart `npm run dev`. |
+| `readyz` reports `db: false` | Create the database and run the migrations (section 7.1). The API still runs without persistence. |
+| The map is live but no trucks move | Start the Reality Emulator (section 7.3); vehicles only exist while telemetry arrives. |
 | Python older than 3.11 | Install 3.11+ (e.g. from python.org or with `brew install python@3.12`) and recreate `.venv`. |
 
-## 10. Where things are
+## 12. Where things are
 
 | Path | What |
 |---|---|
 | `apps/web/` | React + deck.gl + MapLibre prototype |
-| `sim/macro/` | SimPy macro twin: `network.py`, `demand.py`, `engine.py`, `run.py` |
-| `sim/micro/` | SUMO micro twin: `build_hyderabad.py`, `runner.py`, `run.py`, `bench.py` |
+| `sim/macro/` | SimPy macro twin: `network.py`, `demand.py`, `entities.py`, `policies.py`, `engine.py`, `kpis.py`, `montecarlo.py`, `resilience.py`, `verify.py`, `run.py` |
+| `sim/micro/` | SUMO micro twin: `build_hyderabad.py`, `runner.py`, `process.py`, `calibrate.py`, `run.py`, `bench.py` |
+| `sim/coupling/` | Coupling orchestrator (`orchestrator.py`) and `run.py` |
+| `sim/reality/` | Reality Emulator: `emulator.py`, `schemas.py`, `telemetry.py`, `attacks.py`, `run.py`, `bench.py` |
+| `data/benchmark/` | Red-team benchmark: labels, truth, manifest (telemetry is regenerated) |
 | `sim/scenarios/` | Scenario DSL, 7 templates, JSON Schema |
+| `services/api/` | FastAPI platform, Alembic migrations, load test |
+| `docker-compose.yml`, `infra/docker/` | TimescaleDB + Redis + API stack |
 | `data/` | Network, SKUs, sourcing, demand parameters, festival calendar |
 | `docs/srs/` | Software Requirements Specification (PDF + Markdown) |
 | `docs/world/WORLD.md` | Phase 2 report with measured results and findings |
+| `docs/sim/PHASE3.md` | Phase 3 report: engines, verification, coupling, Reality Emulator, benchmark |
+| `docs/platform/PHASE4_5.md` | Phases 4–5 report: API, ingest pipeline, WebSocket, live UI |
 | `docs/architecture/`, `docs/dfd/`, `docs/erd/` | Diagrams |
 | `docs/roadmap/` | Gantt, phase plan, risk register |
 | `PLAN.md` | The full build plan (Levels 1–4) |

@@ -1,0 +1,9 @@
+.venv
+**/node_modules
+apps/web/dist
+.git
+.claude
+**/__pycache__
+data/benchmark/telemetry.jsonl.gz
+data/dataco
+sim/micro/hyderabad/osm

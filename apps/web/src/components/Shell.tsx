@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import clsx from "clsx";
 import { SCREENS } from "../lib/screens";
 import { useAegis } from "../lib/store";
+import { useLive } from "../lib/live";
 import { Kbd, MockChip, Ticker } from "./ui";
 import { CommandPalette } from "./CommandPalette";
 import { CopilotDrawer } from "./CopilotDrawer";
@@ -30,12 +31,27 @@ function Clock() {
 }
 
 function IngestRate() {
-  const [v, setV] = useState(5210);
-  useEffect(() => { const i = setInterval(() => setV(5000 + Math.round(Math.random() * 600)), 1500); return () => clearInterval(i); }, []);
+  const live = useLive((s) => s.status === "live");
+  const rate = useLive((s) => s.kpis?.ingest_rate ?? 0);
+  const [mock, setMock] = useState(5210);
+  useEffect(() => {
+    if (live) return;
+    const i = setInterval(() => setMock(5000 + Math.round(Math.random() * 600)), 1500);
+    return () => clearInterval(i);
+  }, [live]);
   return (
-    <span className="flex items-center gap-1.5 text-[12px] text-ink-2">
+    <span className="flex items-center gap-1.5 text-[12px] text-ink-2" title={live ? "Measured ingest rate (accepted msgs/s, last 10 s)" : "Mock value"}>
       <span className="inline-block w-1.5 h-1.5 rounded-full bg-ok pulse-dot text-ok" />
-      <Ticker value={v} duration={600} className="text-ink" /> <span className="text-ink-3">msg/s</span>
+      <Ticker value={live ? Math.round(rate) : mock} duration={600} className="text-ink" /> <span className="text-ink-3">msg/s</span>
+    </span>
+  );
+}
+
+function LiveChip() {
+  return (
+    <span title="Connected to the AEGIS API: data on this screen is live (WS /ws/live)."
+      className="num inline-flex items-center gap-1.5 rounded-md border border-ok/30 bg-ok/10 px-2 py-0.5 text-[10px] font-semibold tracking-wider text-ok">
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-ok pulse-dot text-ok" /> LIVE · API
     </span>
   );
 }
@@ -99,6 +115,9 @@ export function Shell({ children }: { children: ReactNode }) {
   const { setPaletteOpen, setCopilotOpen, copilotOpen, setDirector, director } = useAegis();
   const current = SCREENS.find((s) => s.path === loc.pathname) ?? SCREENS[0];
   const isIntro = loc.pathname === "/intro";
+  const live = useLive((st) => st.status !== "offline" || !!st.network);
+  const liveScreen = live && (loc.pathname === "/" || loc.pathname === "/scenario");
+  useEffect(() => { useLive.getState().connect(); }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -175,7 +194,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <span className="hidden xl:inline text-[12px] text-ink-3">{current.sub}</span>
             </div>
             <div className="ml-auto flex items-center gap-4 pointer-events-auto">
-              <MockChip />
+              {liveScreen ? <LiveChip /> : <MockChip />}
               <IngestRate />
               <Clock />
               <button onClick={() => setPaletteOpen(true)} className="flex items-center gap-2 h-7 pl-2 pr-1.5 rounded-lg border border-line text-[12px] text-ink-3 hover:text-ink hover:border-line-strong cursor-pointer transition">

@@ -53,6 +53,7 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
       >
         <DeckGLOverlay
           layers={layers} interleaved onClick={onClick} getTooltip={getTooltip} pickingRadius={6}
+          onError={(e, layer) => { console.error(`[deck] ${layer?.id ?? "deck"}: ${e?.message ?? e}`); return true; }}
           onHover={(info) => {
             const canvas = inner.current?.getCanvas();
             if (canvas) canvas.style.cursor = info.object ? "pointer" : "";

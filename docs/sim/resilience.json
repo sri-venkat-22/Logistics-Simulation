@@ -1,0 +1,262 @@
+{
+  "days": 30,
+  "seed": 42,
+  "start": "2026-10-15T00:00+05:30",
+  "baseline_fill_rate": 0.9996178922296322,
+  "nodes": [
+    {
+      "node": "SUP_AHMEDABAD_TEX",
+      "type": "supplier",
+      "name": "Ahmedabad Textiles & FMCG",
+      "dependents": 6,
+      "tts_days": 8.39,
+      "ttr_days": 14.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_BLR/SKU_FMCG",
+        "DC_DELHI/SKU_FMCG",
+        "DC_HYD_MEDCHAL/SKU_FMCG",
+        "DC_HYD_SHAMSHABAD/SKU_FMCG",
+        "DC_PUNE/SKU_FMCG"
+      ],
+      "impact_inr": 73085920,
+      "fill_rate_ttr_outage": 0.3915,
+      "rei": 1.0
+    },
+    {
+      "node": "DC_DELHI",
+      "type": "dc",
+      "name": "Delhi-NCR (Gurugram) DC",
+      "dependents": 3,
+      "tts_days": 0.34,
+      "ttr_days": 5.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_DELHI/SKU_ELEC",
+        "DC_DELHI/SKU_FMCG",
+        "DC_DELHI/SKU_VAX"
+      ],
+      "impact_inr": 48241120,
+      "fill_rate_ttr_outage": 0.9334,
+      "rei": 0.66
+    },
+    {
+      "node": "PLANT_PATANCHERU",
+      "type": "plant",
+      "name": "Patancheru Pharma API Plant",
+      "dependents": 4,
+      "tts_days": 4.75,
+      "ttr_days": 10.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_BLR/SKU_VAX",
+        "DC_DELHI/SKU_VAX",
+        "DC_HYD_SHAMSHABAD/SKU_VAX",
+        "DC_PUNE/SKU_VAX"
+      ],
+      "impact_inr": 23196250,
+      "fill_rate_ttr_outage": 0.9884,
+      "rei": 0.317
+    },
+    {
+      "node": "DC_PUNE",
+      "type": "dc",
+      "name": "Pune-Chakan DC",
+      "dependents": 5,
+      "tts_days": 0.47,
+      "ttr_days": 5.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_HYD_MEDCHAL/SKU_FMCG",
+        "DC_HYD_SHAMSHABAD/SKU_FMCG",
+        "DC_PUNE/SKU_ELEC",
+        "DC_PUNE/SKU_FMCG",
+        "DC_PUNE/SKU_VAX"
+      ],
+      "impact_inr": 20005130,
+      "fill_rate_ttr_outage": 0.97,
+      "rei": 0.274
+    },
+    {
+      "node": "DC_BLR",
+      "type": "dc",
+      "name": "Bengaluru-Hoskote DC",
+      "dependents": 4,
+      "tts_days": 0.4,
+      "ttr_days": 5.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_BLR/SKU_ELEC",
+        "DC_BLR/SKU_FMCG",
+        "DC_BLR/SKU_VAX",
+        "DC_HYD_SHAMSHABAD/SKU_ELEC"
+      ],
+      "impact_inr": 19912830,
+      "fill_rate_ttr_outage": 0.9713,
+      "rei": 0.272
+    },
+    {
+      "node": "DC_HYD_SHAMSHABAD",
+      "type": "dc",
+      "name": "Hyderabad-Shamshabad DC (pharma cold chain)",
+      "dependents": 3,
+      "tts_days": 0.45,
+      "ttr_days": 5.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_HYD_SHAMSHABAD/SKU_ELEC",
+        "DC_HYD_SHAMSHABAD/SKU_FMCG",
+        "DC_HYD_SHAMSHABAD/SKU_VAX"
+      ],
+      "impact_inr": 3705210,
+      "fill_rate_ttr_outage": 0.9965,
+      "rei": 0.051
+    },
+    {
+      "node": "DC_HYD_MEDCHAL",
+      "type": "dc",
+      "name": "Hyderabad-Medchal DC (FMCG/e-com)",
+      "dependents": 3,
+      "tts_days": 1.4,
+      "ttr_days": 5.0,
+      "exposed": true,
+      "first_stockouts": [
+        "DC_HYD_MEDCHAL/SKU_ELEC",
+        "DC_HYD_MEDCHAL/SKU_FMCG",
+        "DC_HYD_SHAMSHABAD/SKU_FMCG"
+      ],
+      "impact_inr": 3365020,
+      "fill_rate_ttr_outage": 0.9876,
+      "rei": 0.046
+    },
+    {
+      "node": "SUP_SHENZHEN",
+      "type": "supplier",
+      "name": "Shenzhen Electronics (overseas)",
+      "dependents": 6,
+      "tts_days": 25.61,
+      "ttr_days": 21.0,
+      "exposed": false,
+      "first_stockouts": [
+        "DC_HYD_SHAMSHABAD/SKU_ELEC"
+      ],
+      "impact_inr": 1558700,
+      "fill_rate_ttr_outage": 0.9994,
+      "rei": 0.021
+    },
+    {
+      "node": "PORT_CHENNAI",
+      "type": "port",
+      "name": "Chennai Port",
+      "dependents": 2,
+      "tts_days": 18.35,
+      "ttr_days": 7.0,
+      "exposed": false,
+      "first_stockouts": [
+        "DC_BLR/SKU_ELEC",
+        "DC_HYD_SHAMSHABAD/SKU_ELEC"
+      ],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "PORT_JNPT",
+      "type": "port",
+      "name": "JNPT / Nhava Sheva",
+      "dependents": 1,
+      "tts_days": 21.39,
+      "ttr_days": 7.0,
+      "exposed": false,
+      "first_stockouts": [
+        "DC_PUNE/SKU_ELEC"
+      ],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "DC_NAGPUR",
+      "type": "dc",
+      "name": "Nagpur Central Hub",
+      "dependents": 3,
+      "tts_days": 22.53,
+      "ttr_days": 5.0,
+      "exposed": false,
+      "first_stockouts": [
+        "DC_DELHI/SKU_ELEC"
+      ],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "PORT_VIZAG",
+      "type": "port",
+      "name": "Visakhapatnam Port",
+      "dependents": 3,
+      "tts_days": 23.37,
+      "ttr_days": 7.0,
+      "exposed": false,
+      "first_stockouts": [
+        "DC_DELHI/SKU_ELEC",
+        "DC_HYD_MEDCHAL/SKU_ELEC"
+      ],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "PORT_MUNDRA",
+      "type": "port",
+      "name": "Mundra Port",
+      "dependents": 0,
+      "tts_days": null,
+      "ttr_days": 7.0,
+      "exposed": false,
+      "first_stockouts": [],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "PORT_KOLKATA",
+      "type": "port",
+      "name": "Kolkata / Haldia",
+      "dependents": 0,
+      "tts_days": null,
+      "ttr_days": 7.0,
+      "exposed": false,
+      "first_stockouts": [],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "SUP_CHENNAI_AUTO",
+      "type": "supplier",
+      "name": "Sriperumbudur Auto & Electronics Cluster",
+      "dependents": 0,
+      "tts_days": null,
+      "ttr_days": 14.0,
+      "exposed": false,
+      "first_stockouts": [],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    },
+    {
+      "node": "SUP_PUNE_ELEC",
+      "type": "supplier",
+      "name": "Chakan Electronics",
+      "dependents": 0,
+      "tts_days": null,
+      "ttr_days": 14.0,
+      "exposed": false,
+      "first_stockouts": [],
+      "impact_inr": 0,
+      "fill_rate_ttr_outage": 0.9996,
+      "rei": 0.0
+    }
+  ]
+}
