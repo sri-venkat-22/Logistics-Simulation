@@ -1,0 +1,52 @@
+{
+  "trucks_requested": 500,
+  "trucks_spawned": 500,
+  "cars": 3000,
+  "sim_seconds": 1800.0,
+  "wall_seconds": 25.14,
+  "setup_seconds": 2.32,
+  "real_time_factor": 71.61,
+  "busiest_5min": {
+    "vehicles_avg": 3449,
+    "real_time_factor": 44.41
+  },
+  "peak_vehicles": 3496,
+  "peak_at_s": 302.0,
+  "teleports": 0,
+  "arrived_trucks": 68,
+  "network_edges": 10670,
+  "timeline": [
+    {
+      "t": 300.0,
+      "vehicles_avg": 1908,
+      "rtf": 87.0
+    },
+    {
+      "t": 600.0,
+      "vehicles_avg": 3449,
+      "rtf": 44.4
+    },
+    {
+      "t": 900.0,
+      "vehicles_avg": 3152,
+      "rtf": 54.0
+    },
+    {
+      "t": 1200.0,
+      "vehicles_avg": 2687,
+      "rtf": 71.1
+    },
+    {
+      "t": 1500.0,
+      "vehicles_avg": 2196,
+      "rtf": 95.6
+    },
+    {
+      "t": 1800.0,
+      "vehicles_avg": 1704,
+      "rtf": 148.6
+    }
+  ],
+  "machine": "arm64 \u00b7 Darwin 27.0.0 \u00b7 Python 3.11.9",
+  "sumo": "SUMO 1.27.1"
+}

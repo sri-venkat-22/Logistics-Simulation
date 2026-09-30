@@ -1,0 +1,126 @@
+{
+ "DC_BLR->DC_HYD_SHAMSHABAD": [
+  543.6,
+  7.21
+ ],
+ "DC_BLR->Z_BLR": [
+  27.5,
+  0.44
+ ],
+ "DC_BLR->Z_CBE": [
+  342.6,
+  4.42
+ ],
+ "DC_BLR->Z_CHN": [
+  301.3,
+  3.7
+ ],
+ "DC_DELHI->Z_DEL": [
+  27.9,
+  0.54
+ ],
+ "DC_DELHI->Z_JAI": [
+  246.5,
+  2.98
+ ],
+ "DC_DELHI->Z_KOL": [
+  1482.1,
+  17.22
+ ],
+ "DC_HYD_MEDCHAL->DC_HYD_SHAMSHABAD": [
+  82.9,
+  0.96
+ ],
+ "DC_HYD_MEDCHAL->DC_NAGPUR": [
+  459.8,
+  6.05
+ ],
+ "DC_HYD_MEDCHAL->Z_HYD": [
+  31.0,
+  0.63
+ ],
+ "DC_HYD_MEDCHAL->Z_VSK": [
+  590.4,
+  7.26
+ ],
+ "DC_HYD_SHAMSHABAD->Z_HYD": [
+  23.9,
+  0.52
+ ],
+ "DC_HYD_SHAMSHABAD->Z_VJA": [
+  289.2,
+  3.69
+ ],
+ "DC_HYD_SHAMSHABAD->Z_VSK": [
+  576.1,
+  7.2
+ ],
+ "DC_NAGPUR->DC_HYD_MEDCHAL": [
+  461.5,
+  5.91
+ ],
+ "DC_PUNE->DC_HYD_MEDCHAL": [
+  577.0,
+  7.0
+ ],
+ "DC_PUNE->Z_MUM": [
+  133.2,
+  1.75
+ ],
+ "DC_PUNE->Z_PUN": [
+  25.1,
+  0.48
+ ],
+ "PLANT_PATANCHERU->DC_BLR": [
+  580.8,
+  7.54
+ ],
+ "PLANT_PATANCHERU->DC_HYD_MEDCHAL": [
+  38.4,
+  0.47
+ ],
+ "PLANT_PATANCHERU->DC_HYD_SHAMSHABAD": [
+  51.7,
+  0.65
+ ],
+ "PLANT_PATANCHERU->DC_PUNE": [
+  544.0,
+  6.63
+ ],
+ "PORT_CHENNAI->DC_BLR": [
+  308.5,
+  3.95
+ ],
+ "PORT_CHENNAI->DC_HYD_SHAMSHABAD": [
+  660.0,
+  8.23
+ ],
+ "PORT_JNPT->DC_PUNE": [
+  122.9,
+  1.63
+ ],
+ "PORT_VIZAG->DC_HYD_SHAMSHABAD": [
+  583.9,
+  7.42
+ ],
+ "SUP_AHMEDABAD_TEX->DC_PUNE": [
+  626.6,
+  7.55
+ ],
+ "SUP_CHENNAI_AUTO->DC_BLR": [
+  261.7,
+  3.23
+ ],
+ "SUP_CHENNAI_AUTO->DC_HYD_MEDCHAL": [
+  682.6,
+  8.55
+ ],
+ "SUP_PUNE_ELEC->DC_HYD_MEDCHAL": [
+  576.7,
+  6.93
+ ],
+ "SUP_PUNE_ELEC->DC_PUNE": [
+  16.3,
+  0.28
+ ]
+}

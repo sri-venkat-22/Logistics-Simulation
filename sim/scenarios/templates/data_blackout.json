@@ -1,0 +1,11 @@
+{
+  "name": "30% telemetry blackout",
+  "description": "30% of telemetry sources go silent for 10 minutes. No physical effect on goods: the twin must switch affected entities to PREDICTED dead-reckoning (trust layer, Phase 7).",
+  "type": "data_blackout",
+  "target": "*",
+  "polygon": null,
+  "start": "+1h",
+  "duration_h": 0.1667,
+  "severity": 1.0,
+  "params": {"fraction": 0.3, "sources": []}
+}

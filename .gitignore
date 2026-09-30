@@ -7,3 +7,7 @@ __pycache__/
 docs/**/.print.html
 *.tsbuildinfo
 .claude/
+.venv/
+.pytest_cache/
+data/dataco/*.csv
+sim/micro/hyderabad/osm/

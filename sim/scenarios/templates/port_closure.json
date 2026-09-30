@@ -1,0 +1,11 @@
+{
+  "name": "Chennai port closed",
+  "description": "Chennai port stops handling cargo for 5 days (e.g. flooding of the terminal). Sea inbound for Bengaluru and Hyderabad waits at anchorage.",
+  "type": "port_closure",
+  "target": "PORT_CHENNAI",
+  "polygon": null,
+  "start": "+6h",
+  "duration_h": 120,
+  "severity": 1.0,
+  "params": {"capacity_factor": 0.0, "divert_to": ["PORT_VIZAG"]}
+}

@@ -65,33 +65,42 @@
     "name": "Patancheru Pharma API Plant",
     "lat": 17.53,
     "lon": 78.26,
-    "capacity": 12000,
+    "capacity": 6000,
     "attrs": {
-      "family": "vaccine"
+      "produces": [
+        "SKU_VAX"
+      ],
+      "industry": "pharma"
     },
     "status": "ok"
   },
   {
     "id": "SUP_CHENNAI_AUTO",
     "type": "supplier",
-    "name": "Sriperumbudur Auto Parts",
+    "name": "Sriperumbudur Auto & Electronics Cluster",
     "lat": 12.96,
     "lon": 79.95,
-    "capacity": 9000,
+    "capacity": 4500,
     "attrs": {
-      "family": "electronics"
+      "produces": [
+        "SKU_ELEC"
+      ],
+      "industry": "auto-parts / electronics"
     },
     "status": "ok"
   },
   {
     "id": "SUP_AHMEDABAD_TEX",
     "type": "supplier",
-    "name": "Ahmedabad Textiles",
+    "name": "Ahmedabad Textiles & FMCG",
     "lat": 23.02,
     "lon": 72.57,
-    "capacity": 15000,
+    "capacity": 30000,
     "attrs": {
-      "family": "fmcg"
+      "produces": [
+        "SKU_FMCG"
+      ],
+      "industry": "textiles / FMCG"
     },
     "status": "ok"
   },
@@ -101,9 +110,12 @@
     "name": "Chakan Electronics",
     "lat": 18.76,
     "lon": 73.86,
-    "capacity": 8000,
+    "capacity": 3500,
     "attrs": {
-      "family": "electronics"
+      "produces": [
+        "SKU_ELEC"
+      ],
+      "industry": "electronics"
     },
     "status": "ok"
   },
@@ -113,9 +125,13 @@
     "name": "Shenzhen Electronics (overseas)",
     "lat": 22.54,
     "lon": 114.06,
-    "capacity": 20000,
+    "capacity": 12000,
     "attrs": {
-      "family": "electronics"
+      "produces": [
+        "SKU_ELEC"
+      ],
+      "industry": "electronics",
+      "overseas": true
     },
     "status": "ok"
   },
@@ -127,7 +143,11 @@
     "lon": 78.48,
     "capacity": 18000,
     "attrs": {
-      "cold_chain": false
+      "cold_chain": false,
+      "primary": [
+        "fmcg",
+        "electronics"
+      ]
     },
     "status": "ok"
   },
@@ -139,7 +159,11 @@
     "lon": 78.43,
     "capacity": 9000,
     "attrs": {
-      "cold_chain": true
+      "cold_chain": true,
+      "primary": [
+        "vaccine"
+      ],
+      "near": "RGIA airport"
     },
     "status": "ok"
   },
@@ -187,7 +211,7 @@
     "lon": 73.8,
     "capacity": 14000,
     "attrs": {
-      "cold_chain": false
+      "cold_chain": true
     },
     "status": "ok"
   },

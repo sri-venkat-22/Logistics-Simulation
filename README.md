@@ -26,6 +26,27 @@ This is an anonymous *temporary* Vercel deployment: it expires 60 minutes after 
 
 > Every number in the prototype is **seeded mock data** (`scripts/gen_mock.py`) and every screen says so with a *PROTOTYPE · MOCK DATA* badge. Geography is real: node coordinates are real sites, and Hyderabad road geometry comes from OpenStreetMap via OSRM.
 
+## Phase 2 — World building (data, demand, SUMO Hyderabad, scenario DSL)
+
+Report with all measured results: [`docs/world/WORLD.md`](docs/world/WORLD.md).
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+```bash
+.venv/bin/python -m sim.macro.run --days 30
+```
+
+```bash
+.venv/bin/python -m sim.micro.run
+```
+
+- **Macro twin** (SimPy): 28 real-coordinate nodes, 49 lanes (OSRM road distances, sea routes via Malacca), 3 SKU families, demand fitted from DataCo with a Diwali +60% spike. `--scenario cyclone --compare` shows the scenario next to the baseline, using common random numbers.
+- **Micro twin** (SUMO 1.27, libsumo): the Hyderabad western/southern belt, 10,670 edges, 12 DC/plant hubs as parkingAreas, background traffic. 500 trucks + 3,000 cars run at **71.6× real time** (`python -m sim.micro.bench`).
+- **Scenario DSL** (Pydantic v2): 7 templates in `sim/scenarios/templates/`, validated by `python -m sim.scenarios.validate`.
+- Tests: `.venv/bin/python -m pytest` (38 tests).
+
 ## Run the prototype locally
 
 ```bash
@@ -76,7 +97,11 @@ The first command regenerates the network data and mock JSON (deterministic; OSR
 
 ```
 apps/web/            React 19 + deck.gl 9.4 + MapLibre 5 prototype (becomes the real frontend)
-data/                Reference network: nodes.json, lanes.json, skus.json (+ generator, cached OSRM routes)
+sim/macro/           SimPy macro twin: network, demand model, engine, `python -m sim.macro.run`
+sim/micro/           SUMO Hyderabad micro-twin: build, libsumo runner, `run`, `bench`
+sim/scenarios/       Scenario DSL (Pydantic), 7 templates, JSON Schema
+tests/               pytest suite (network, demand, DSL, macro, micro)
+data/                Network (nodes, lanes, skus, sourcing), demand params + festivals, OSRM cache
 scripts/gen_mock.py  Seeded mock data for the prototype (incl. a toy Monte Carlo)
 docs/                srs · architecture · dfd · erd · wireframes · roadmap · pitch · adr
 tools/               Doc build tooling: Mermaid render, PDF build, prototype screenshots

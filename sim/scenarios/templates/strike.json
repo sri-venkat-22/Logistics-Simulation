@@ -1,0 +1,11 @@
+{
+  "name": "Nagpur hub strike",
+  "description": "Transport workers' strike at the Nagpur central hub: dispatch throughput falls to 30% for two days.",
+  "type": "strike",
+  "target": "DC_NAGPUR",
+  "polygon": null,
+  "start": "+1d",
+  "duration_h": 48,
+  "severity": 0.7,
+  "params": {"throughput_factor": 0.3}
+}

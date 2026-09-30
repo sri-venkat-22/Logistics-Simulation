@@ -1,0 +1,122 @@
+{
+  "Medchal DC": {
+    "kind": "dc",
+    "lat": 17.63,
+    "lon": 78.48,
+    "edge": "810375272",
+    "lane": "810375272_0",
+    "parking_area": "pa_medchal_dc",
+    "snap_m": 68.6,
+    "street": ""
+  },
+  "Shamshabad DC": {
+    "kind": "dc",
+    "lat": 17.24,
+    "lon": 78.43,
+    "edge": "29113344#1",
+    "lane": "29113344#1_0",
+    "parking_area": "pa_shamshabad_dc",
+    "snap_m": 90.4,
+    "street": "Terminal 1 Approach Rd"
+  },
+  "Patancheru Plant": {
+    "kind": "plant",
+    "lat": 17.53,
+    "lon": 78.26,
+    "edge": "573890896#2",
+    "lane": "573890896#2_0",
+    "parking_area": "pa_patancheru_plant",
+    "snap_m": 17.0,
+    "street": ""
+  },
+  "Kothur Pharma": {
+    "kind": "plant",
+    "lat": 17.16,
+    "lon": 78.29,
+    "edge": "432322837",
+    "lane": "432322837_0",
+    "parking_area": "pa_kothur_pharma",
+    "snap_m": 497.8,
+    "street": ""
+  },
+  "Jeedimetla Industrial": {
+    "kind": "industrial",
+    "lat": 17.515,
+    "lon": 78.455,
+    "edge": "-354041114#1",
+    "lane": "-354041114#1_0",
+    "parking_area": "pa_jeedimetla_industrial",
+    "snap_m": 201.7,
+    "street": ""
+  },
+  "Kompally": {
+    "kind": "consumer",
+    "lat": 17.536,
+    "lon": 78.487,
+    "edge": "1460401723",
+    "lane": "1460401723_0",
+    "parking_area": "pa_kompally",
+    "snap_m": 253.7,
+    "street": "Nizamabad Road"
+  },
+  "Kukatpally": {
+    "kind": "consumer",
+    "lat": 17.494,
+    "lon": 78.399,
+    "edge": "673625382#1",
+    "lane": "673625382#1_0",
+    "parking_area": "pa_kukatpally",
+    "snap_m": 99.6,
+    "street": "Nizampet - JNTU Road Mumbai Highway"
+  },
+  "Gachibowli": {
+    "kind": "consumer",
+    "lat": 17.44,
+    "lon": 78.348,
+    "edge": "211221856#5",
+    "lane": "211221856#5_0",
+    "parking_area": "pa_gachibowli",
+    "snap_m": 81.6,
+    "street": "ISB Road"
+  },
+  "Hitec City": {
+    "kind": "consumer",
+    "lat": 17.447,
+    "lon": 78.376,
+    "edge": "89914125#1",
+    "lane": "89914125#1_0",
+    "parking_area": "pa_hitec_city",
+    "snap_m": 52.3,
+    "street": "Deloitte driveway"
+  },
+  "Mehdipatnam": {
+    "kind": "consumer",
+    "lat": 17.395,
+    "lon": 78.437,
+    "edge": "375638015#1",
+    "lane": "375638015#1_0",
+    "parking_area": "pa_mehdipatnam",
+    "snap_m": 0.8,
+    "street": "P.V. Narasimha Rao Flyover"
+  },
+  "Secunderabad": {
+    "kind": "consumer",
+    "lat": 17.439,
+    "lon": 78.498,
+    "edge": "-1201252790",
+    "lane": "-1201252790_0",
+    "parking_area": "pa_secunderabad",
+    "snap_m": 69.6,
+    "street": "Market road"
+  },
+  "RGIA Air Cargo": {
+    "kind": "airport",
+    "lat": 17.232,
+    "lon": 78.448,
+    "edge": "-1240151613",
+    "lane": "-1240151613_0",
+    "parking_area": "pa_rgia_air_cargo",
+    "snap_m": 645.3,
+    "street": ""
+  }
+}

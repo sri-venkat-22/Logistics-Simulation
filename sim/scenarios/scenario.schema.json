@@ -1,0 +1,114 @@
+{
+  "$defs": {
+    "ScenarioType": {
+      "enum": [
+        "port_closure",
+        "cyclone",
+        "road_flood",
+        "demand_spike",
+        "supplier_failure",
+        "strike",
+        "data_blackout"
+      ],
+      "title": "ScenarioType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "type": {
+      "$ref": "#/$defs/ScenarioType"
+    },
+    "target": {
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_\\-*]+$",
+      "title": "Target",
+      "type": "string"
+    },
+    "polygon": {
+      "anyOf": [
+        {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Polygon"
+    },
+    "start": {
+      "default": "+0h",
+      "title": "Start",
+      "type": "string"
+    },
+    "duration_h": {
+      "exclusiveMinimum": 0,
+      "maximum": 2160,
+      "title": "Duration H",
+      "type": "number"
+    },
+    "severity": {
+      "default": 1.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Severity",
+      "type": "number"
+    },
+    "params": {
+      "additionalProperties": true,
+      "title": "Params",
+      "type": "object"
+    },
+    "name": {
+      "anyOf": [
+        {
+          "maxLength": 120,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional human label (not part of the spec hash)",
+      "title": "Name"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "maxLength": 600,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Optional note (not part of the spec hash)",
+      "title": "Description"
+    }
+  },
+  "required": [
+    "type",
+    "target",
+    "duration_h"
+  ],
+  "title": "Scenario",
+  "type": "object",
+  "$comment": "params are validated per type: port_closure -> PortClosureParams ['capacity_factor', 'divert_to'], cyclone -> CycloneParams ['close_nodes', 'lane_time_multiplier', 'radius_km'], road_flood -> RoadFloodParams ['lanes', 'speed_factor', 'sumo_edges'], demand_spike -> DemandSpikeParams ['multiplier', 'skus'], supplier_failure -> SupplierFailureParams ['capacity_factor'], strike -> StrikeParams ['throughput_factor'], data_blackout -> DataBlackoutParams ['fraction', 'sources']"
+}

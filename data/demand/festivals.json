@@ -1,0 +1,8 @@
+{
+  "_doc": "Festival demand spikes. multiplier(t) = 1 + uplift * shape(t): shape ramps linearly from 0 at -pre_days to 1 at -plateau_days, holds 1 through the festival day, and decays linearly to 0 by +post_days. Families not listed get no uplift. Diwali (Lakshmi Puja) dates per the Hindu lunisolar calendar.",
+  "festivals": [
+    {"name": "Diwali", "date": "2025-10-20", "uplift": 0.60, "families": ["fmcg", "electronics"], "pre_days": 12, "plateau_days": 3, "post_days": 2},
+    {"name": "Diwali", "date": "2026-11-08", "uplift": 0.60, "families": ["fmcg", "electronics"], "pre_days": 12, "plateau_days": 3, "post_days": 2},
+    {"name": "Diwali", "date": "2027-10-29", "uplift": 0.60, "families": ["fmcg", "electronics"], "pre_days": 12, "plateau_days": 3, "post_days": 2}
+  ]
+}

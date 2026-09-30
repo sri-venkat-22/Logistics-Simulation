@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<additional>
+    <parkingArea id="pa_medchal_dc" lane="810375272_0" startPos="450.2" endPos="500.2" roadsideCapacity="12" name="Medchal DC"/>
+    <parkingArea id="pa_shamshabad_dc" lane="29113344#1_0" startPos="217.6" endPos="267.6" roadsideCapacity="12" name="Shamshabad DC"/>
+    <parkingArea id="pa_patancheru_plant" lane="573890896#2_0" startPos="34.8" endPos="84.8" roadsideCapacity="12" name="Patancheru Plant"/>
+    <parkingArea id="pa_kothur_pharma" lane="432322837_0" startPos="995.8" endPos="1045.8" roadsideCapacity="12" name="Kothur Pharma"/>
+    <parkingArea id="pa_jeedimetla_industrial" lane="-354041114#1_0" startPos="387.7" endPos="437.7" roadsideCapacity="12" name="Jeedimetla Industrial"/>
+    <parkingArea id="pa_kompally" lane="1460401723_0" startPos="231.4" endPos="281.4" roadsideCapacity="12" name="Kompally"/>
+    <parkingArea id="pa_kukatpally" lane="673625382#1_0" startPos="240.0" endPos="290.0" roadsideCapacity="12" name="Kukatpally"/>
+    <parkingArea id="pa_gachibowli" lane="211221856#5_0" startPos="336.1" endPos="386.1" roadsideCapacity="12" name="Gachibowli"/>
+    <parkingArea id="pa_hitec_city" lane="89914125#1_0" startPos="147.3" endPos="197.3" roadsideCapacity="12" name="Hitec City"/>
+    <parkingArea id="pa_mehdipatnam" lane="375638015#1_0" startPos="1579.7" endPos="1629.7" roadsideCapacity="12" name="Mehdipatnam"/>
+    <parkingArea id="pa_secunderabad" lane="-1201252790_0" startPos="292.4" endPos="342.4" roadsideCapacity="12" name="Secunderabad"/>
+    <parkingArea id="pa_rgia_air_cargo" lane="-1240151613_0" startPos="103.6" endPos="153.6" roadsideCapacity="12" name="RGIA Air Cargo"/>
+</additional>

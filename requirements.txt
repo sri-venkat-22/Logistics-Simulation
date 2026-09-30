@@ -1,0 +1,13 @@
+# Simulation + world building (Phase 2). Python >= 3.11.
+simpy==4.1.1
+numpy>=2.0
+networkx>=3.3
+pydantic>=2.8
+eclipse-sumo==1.27.1
+libsumo==1.27.1
+traci==1.27.1
+sumolib==1.27.1
+pandas>=2.2          # DataCo demand fit
+pyproj>=3.6          # sumolib lon/lat <-> net x/y
+osmium>=4.0          # clip the Telangana OSM extract
+pytest>=8.0

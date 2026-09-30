@@ -1,0 +1,11 @@
+{
+  "name": "Hyderabad demand spike",
+  "description": "A sudden +80% surge in FMCG and electronics demand in Hyderabad for a week (flash sale / panic buying), on top of seasonality.",
+  "type": "demand_spike",
+  "target": "Z_HYD",
+  "polygon": null,
+  "start": "+0h",
+  "duration_h": 168,
+  "severity": 1.0,
+  "params": {"multiplier": 1.8, "skus": ["SKU_FMCG", "SKU_ELEC"]}
+}

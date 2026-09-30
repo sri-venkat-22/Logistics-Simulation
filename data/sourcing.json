@@ -1,0 +1,911 @@
+{
+  "replenishment": [
+    {
+      "dc": "DC_HYD_MEDCHAL",
+      "sku": "SKU_FMCG",
+      "primary": {
+        "source": "SUP_AHMEDABAD_TEX",
+        "nodes": [
+          "SUP_AHMEDABAD_TEX",
+          "DC_PUNE",
+          "DC_HYD_MEDCHAL"
+        ],
+        "lanes": [
+          "L021",
+          "L028"
+        ],
+        "lead_mean_h": 39.7,
+        "overseas": false
+      },
+      "alternates": [
+        {
+          "source": "SUP_AHMEDABAD_TEX",
+          "nodes": [
+            "SUP_AHMEDABAD_TEX",
+            "DC_NAGPUR",
+            "DC_HYD_MEDCHAL"
+          ],
+          "lanes": [
+            "L045",
+            "L046"
+          ],
+          "lead_mean_h": 66.6,
+          "overseas": false
+        }
+      ]
+    },
+    {
+      "dc": "DC_HYD_MEDCHAL",
+      "sku": "SKU_ELEC",
+      "primary": {
+        "source": "SUP_SHENZHEN",
+        "nodes": [
+          "SUP_SHENZHEN",
+          "PORT_VIZAG",
+          "DC_HYD_MEDCHAL"
+        ],
+        "lanes": [
+          "L002",
+          "L008"
+        ],
+        "lead_mean_h": 329.5,
+        "overseas": true
+      },
+      "alternates": [
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_CHENNAI",
+            "DC_HYD_MEDCHAL"
+          ],
+          "lanes": [
+            "L001",
+            "L007"
+          ],
+          "lead_mean_h": 329.7,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_VIZAG",
+            "DC_NAGPUR",
+            "DC_HYD_MEDCHAL"
+          ],
+          "lanes": [
+            "L002",
+            "L010",
+            "L046"
+          ],
+          "lead_mean_h": 349.1,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_KOLKATA",
+            "DC_NAGPUR",
+            "DC_HYD_MEDCHAL"
+          ],
+          "lanes": [
+            "L003",
+            "L014",
+            "L046"
+          ],
+          "lead_mean_h": 370.4,
+          "overseas": true
+        }
+      ]
+    },
+    {
+      "dc": "DC_HYD_SHAMSHABAD",
+      "sku": "SKU_VAX",
+      "primary": {
+        "source": "PLANT_PATANCHERU",
+        "nodes": [
+          "PLANT_PATANCHERU",
+          "DC_HYD_SHAMSHABAD"
+        ],
+        "lanes": [
+          "L015"
+        ],
+        "lead_mean_h": 5.4,
+        "overseas": false
+      },
+      "alternates": [
+        {
+          "source": "PLANT_PATANCHERU",
+          "nodes": [
+            "PLANT_PATANCHERU",
+            "DC_BLR",
+            "DC_HYD_SHAMSHABAD"
+          ],
+          "lanes": [
+            "L017",
+            "L029"
+          ],
+          "lead_mean_h": 26.1,
+          "overseas": false
+        }
+      ]
+    },
+    {
+      "dc": "DC_HYD_SHAMSHABAD",
+      "sku": "SKU_FMCG",
+      "primary": {
+        "source": "SUP_AHMEDABAD_TEX",
+        "nodes": [
+          "SUP_AHMEDABAD_TEX",
+          "DC_PUNE",
+          "DC_HYD_MEDCHAL",
+          "DC_HYD_SHAMSHABAD"
+        ],
+        "lanes": [
+          "L021",
+          "L028",
+          "L047"
+        ],
+        "lead_mean_h": 45.9,
+        "overseas": false
+      },
+      "alternates": [
+        {
+          "source": "SUP_AHMEDABAD_TEX",
+          "nodes": [
+            "SUP_AHMEDABAD_TEX",
+            "DC_NAGPUR",
+            "DC_HYD_MEDCHAL",
+            "DC_HYD_SHAMSHABAD"
+          ],
+          "lanes": [
+            "L045",
+            "L046",
+            "L047"
+          ],
+          "lead_mean_h": 72.8,
+          "overseas": false
+        },
+        {
+          "source": "SUP_AHMEDABAD_TEX",
+          "nodes": [
+            "SUP_AHMEDABAD_TEX",
+            "DC_BLR",
+            "DC_HYD_SHAMSHABAD"
+          ],
+          "lanes": [
+            "L048",
+            "L029"
+          ],
+          "lead_mean_h": 82.2,
+          "overseas": false
+        }
+      ]
+    },
+    {
+      "dc": "DC_HYD_SHAMSHABAD",
+      "sku": "SKU_ELEC",
+      "primary": {
+        "source": "SUP_SHENZHEN",
+        "nodes": [
+          "SUP_SHENZHEN",
+          "PORT_CHENNAI",
+          "DC_BLR",
+          "DC_HYD_SHAMSHABAD"
+        ],
+        "lanes": [
+          "L001",
+          "L005",
+          "L029"
+        ],
+        "lead_mean_h": 305.5,
+        "overseas": true
+      },
+      "alternates": [
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_VIZAG",
+            "DC_HYD_SHAMSHABAD"
+          ],
+          "lanes": [
+            "L002",
+            "L009"
+          ],
+          "lead_mean_h": 307.3,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_CHENNAI",
+            "DC_HYD_SHAMSHABAD"
+          ],
+          "lanes": [
+            "L001",
+            "L006"
+          ],
+          "lead_mean_h": 308.0,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_VIZAG",
+            "DC_HYD_MEDCHAL",
+            "DC_HYD_SHAMSHABAD"
+          ],
+          "lanes": [
+            "L002",
+            "L008",
+            "L047"
+          ],
+          "lead_mean_h": 335.7,
+          "overseas": true
+        }
+      ]
+    },
+    {
+      "dc": "DC_BLR",
+      "sku": "SKU_VAX",
+      "primary": {
+        "source": "PLANT_PATANCHERU",
+        "nodes": [
+          "PLANT_PATANCHERU",
+          "DC_BLR"
+        ],
+        "lanes": [
+          "L017"
+        ],
+        "lead_mean_h": 19.3,
+        "overseas": false
+      },
+      "alternates": []
+    },
+    {
+      "dc": "DC_BLR",
+      "sku": "SKU_FMCG",
+      "primary": {
+        "source": "SUP_AHMEDABAD_TEX",
+        "nodes": [
+          "SUP_AHMEDABAD_TEX",
+          "DC_BLR"
+        ],
+        "lanes": [
+          "L048"
+        ],
+        "lead_mean_h": 75.4,
+        "overseas": false
+      },
+      "alternates": []
+    },
+    {
+      "dc": "DC_BLR",
+      "sku": "SKU_ELEC",
+      "primary": {
+        "source": "SUP_SHENZHEN",
+        "nodes": [
+          "SUP_SHENZHEN",
+          "PORT_CHENNAI",
+          "DC_BLR"
+        ],
+        "lanes": [
+          "L001",
+          "L005"
+        ],
+        "lead_mean_h": 298.7,
+        "overseas": true
+      },
+      "alternates": [
+        {
+          "source": "SUP_CHENNAI_AUTO",
+          "nodes": [
+            "SUP_CHENNAI_AUTO",
+            "DC_BLR"
+          ],
+          "lanes": [
+            "L019"
+          ],
+          "lead_mean_h": 10.9,
+          "overseas": false
+        }
+      ]
+    },
+    {
+      "dc": "DC_NAGPUR",
+      "sku": "SKU_FMCG",
+      "primary": {
+        "source": "SUP_AHMEDABAD_TEX",
+        "nodes": [
+          "SUP_AHMEDABAD_TEX",
+          "DC_NAGPUR"
+        ],
+        "lanes": [
+          "L045"
+        ],
+        "lead_mean_h": 50.5,
+        "overseas": false
+      },
+      "alternates": [
+        {
+          "source": "SUP_AHMEDABAD_TEX",
+          "nodes": [
+            "SUP_AHMEDABAD_TEX",
+            "DC_PUNE",
+            "DC_HYD_MEDCHAL",
+            "DC_NAGPUR"
+          ],
+          "lanes": [
+            "L021",
+            "L028",
+            "L026"
+          ],
+          "lead_mean_h": 55.8,
+          "overseas": false
+        }
+      ]
+    },
+    {
+      "dc": "DC_NAGPUR",
+      "sku": "SKU_ELEC",
+      "primary": {
+        "source": "SUP_SHENZHEN",
+        "nodes": [
+          "SUP_SHENZHEN",
+          "PORT_VIZAG",
+          "DC_NAGPUR"
+        ],
+        "lanes": [
+          "L002",
+          "L010"
+        ],
+        "lead_mean_h": 333.0,
+        "overseas": true
+      },
+      "alternates": [
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_VIZAG",
+            "DC_HYD_MEDCHAL",
+            "DC_NAGPUR"
+          ],
+          "lanes": [
+            "L002",
+            "L008",
+            "L026"
+          ],
+          "lead_mean_h": 345.6,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_CHENNAI",
+            "DC_HYD_MEDCHAL",
+            "DC_NAGPUR"
+          ],
+          "lanes": [
+            "L001",
+            "L007",
+            "L026"
+          ],
+          "lead_mean_h": 345.8,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_KOLKATA",
+            "DC_NAGPUR"
+          ],
+          "lanes": [
+            "L003",
+            "L014"
+          ],
+          "lead_mean_h": 354.3,
+          "overseas": true
+        }
+      ]
+    },
+    {
+      "dc": "DC_DELHI",
+      "sku": "SKU_VAX",
+      "primary": {
+        "source": "PLANT_PATANCHERU",
+        "nodes": [
+          "PLANT_PATANCHERU",
+          "DC_DELHI"
+        ],
+        "lanes": [
+          "L018"
+        ],
+        "lead_mean_h": 8.0,
+        "overseas": false
+      },
+      "alternates": []
+    },
+    {
+      "dc": "DC_DELHI",
+      "sku": "SKU_FMCG",
+      "primary": {
+        "source": "SUP_AHMEDABAD_TEX",
+        "nodes": [
+          "SUP_AHMEDABAD_TEX",
+          "DC_DELHI"
+        ],
+        "lanes": [
+          "L022"
+        ],
+        "lead_mean_h": 52.9,
+        "overseas": false
+      },
+      "alternates": [
+        {
+          "source": "SUP_AHMEDABAD_TEX",
+          "nodes": [
+            "SUP_AHMEDABAD_TEX",
+            "DC_NAGPUR",
+            "DC_DELHI"
+          ],
+          "lanes": [
+            "L045",
+            "L027"
+          ],
+          "lead_mean_h": 107.7,
+          "overseas": false
+        },
+        {
+          "source": "SUP_AHMEDABAD_TEX",
+          "nodes": [
+            "SUP_AHMEDABAD_TEX",
+            "DC_PUNE",
+            "DC_HYD_MEDCHAL",
+            "DC_NAGPUR",
+            "DC_DELHI"
+          ],
+          "lanes": [
+            "L021",
+            "L028",
+            "L026",
+            "L027"
+          ],
+          "lead_mean_h": 113.0,
+          "overseas": false
+        }
+      ]
+    },
+    {
+      "dc": "DC_DELHI",
+      "sku": "SKU_ELEC",
+      "primary": {
+        "source": "SUP_SHENZHEN",
+        "nodes": [
+          "SUP_SHENZHEN",
+          "PORT_VIZAG",
+          "DC_NAGPUR",
+          "DC_DELHI"
+        ],
+        "lanes": [
+          "L002",
+          "L010",
+          "L027"
+        ],
+        "lead_mean_h": 390.2,
+        "overseas": true
+      },
+      "alternates": [
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_VIZAG",
+            "DC_HYD_MEDCHAL",
+            "DC_NAGPUR",
+            "DC_DELHI"
+          ],
+          "lanes": [
+            "L002",
+            "L008",
+            "L026",
+            "L027"
+          ],
+          "lead_mean_h": 402.8,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_CHENNAI",
+            "DC_HYD_MEDCHAL",
+            "DC_NAGPUR",
+            "DC_DELHI"
+          ],
+          "lanes": [
+            "L001",
+            "L007",
+            "L026",
+            "L027"
+          ],
+          "lead_mean_h": 403.0,
+          "overseas": true
+        },
+        {
+          "source": "SUP_SHENZHEN",
+          "nodes": [
+            "SUP_SHENZHEN",
+            "PORT_KOLKATA",
+            "DC_NAGPUR",
+            "DC_DELHI"
+          ],
+          "lanes": [
+            "L003",
+            "L014",
+            "L027"
+          ],
+          "lead_mean_h": 411.5,
+          "overseas": true
+        }
+      ]
+    },
+    {
+      "dc": "DC_PUNE",
+      "sku": "SKU_VAX",
+      "primary": {
+        "source": "PLANT_PATANCHERU",
+        "nodes": [
+          "PLANT_PATANCHERU",
+          "DC_PUNE"
+        ],
+        "lanes": [
+          "L049"
+        ],
+        "lead_mean_h": 18.3,
+        "overseas": false
+      },
+      "alternates": []
+    },
+    {
+      "dc": "DC_PUNE",
+      "sku": "SKU_FMCG",
+      "primary": {
+        "source": "SUP_AHMEDABAD_TEX",
+        "nodes": [
+          "SUP_AHMEDABAD_TEX",
+          "DC_PUNE"
+        ],
+        "lanes": [
+          "L021"
+        ],
+        "lead_mean_h": 20.5,
+        "overseas": false
+      },
+      "alternates": []
+    },
+    {
+      "dc": "DC_PUNE",
+      "sku": "SKU_ELEC",
+      "primary": {
+        "source": "SUP_SHENZHEN",
+        "nodes": [
+          "SUP_SHENZHEN",
+          "PORT_JNPT",
+          "DC_PUNE"
+        ],
+        "lanes": [
+          "L004",
+          "L011"
+        ],
+        "lead_mean_h": 356.5,
+        "overseas": true
+      },
+      "alternates": [
+        {
+          "source": "SUP_PUNE_ELEC",
+          "nodes": [
+            "SUP_PUNE_ELEC",
+            "DC_PUNE"
+          ],
+          "lanes": [
+            "L023"
+          ],
+          "lead_mean_h": 4.4,
+          "overseas": false
+        }
+      ]
+    }
+  ],
+  "serving": [
+    {
+      "zone": "Z_HYD",
+      "sku": "SKU_VAX",
+      "dc": "DC_HYD_SHAMSHABAD",
+      "lane": "L031",
+      "backup": []
+    },
+    {
+      "zone": "Z_HYD",
+      "sku": "SKU_FMCG",
+      "dc": "DC_HYD_MEDCHAL",
+      "lane": "L030",
+      "backup": [
+        {
+          "dc": "DC_HYD_SHAMSHABAD",
+          "lane": "L031"
+        }
+      ]
+    },
+    {
+      "zone": "Z_HYD",
+      "sku": "SKU_ELEC",
+      "dc": "DC_HYD_MEDCHAL",
+      "lane": "L030",
+      "backup": [
+        {
+          "dc": "DC_HYD_SHAMSHABAD",
+          "lane": "L031"
+        }
+      ]
+    },
+    {
+      "zone": "Z_BLR",
+      "sku": "SKU_VAX",
+      "dc": "DC_BLR",
+      "lane": "L034",
+      "backup": []
+    },
+    {
+      "zone": "Z_BLR",
+      "sku": "SKU_FMCG",
+      "dc": "DC_BLR",
+      "lane": "L034",
+      "backup": []
+    },
+    {
+      "zone": "Z_BLR",
+      "sku": "SKU_ELEC",
+      "dc": "DC_BLR",
+      "lane": "L034",
+      "backup": []
+    },
+    {
+      "zone": "Z_CHN",
+      "sku": "SKU_VAX",
+      "dc": "DC_BLR",
+      "lane": "L035",
+      "backup": []
+    },
+    {
+      "zone": "Z_CHN",
+      "sku": "SKU_FMCG",
+      "dc": "DC_BLR",
+      "lane": "L035",
+      "backup": []
+    },
+    {
+      "zone": "Z_CHN",
+      "sku": "SKU_ELEC",
+      "dc": "DC_BLR",
+      "lane": "L035",
+      "backup": []
+    },
+    {
+      "zone": "Z_MUM",
+      "sku": "SKU_VAX",
+      "dc": "DC_PUNE",
+      "lane": "L038",
+      "backup": []
+    },
+    {
+      "zone": "Z_MUM",
+      "sku": "SKU_FMCG",
+      "dc": "DC_PUNE",
+      "lane": "L038",
+      "backup": []
+    },
+    {
+      "zone": "Z_MUM",
+      "sku": "SKU_ELEC",
+      "dc": "DC_PUNE",
+      "lane": "L038",
+      "backup": []
+    },
+    {
+      "zone": "Z_DEL",
+      "sku": "SKU_VAX",
+      "dc": "DC_DELHI",
+      "lane": "L039",
+      "backup": []
+    },
+    {
+      "zone": "Z_DEL",
+      "sku": "SKU_FMCG",
+      "dc": "DC_DELHI",
+      "lane": "L039",
+      "backup": []
+    },
+    {
+      "zone": "Z_DEL",
+      "sku": "SKU_ELEC",
+      "dc": "DC_DELHI",
+      "lane": "L039",
+      "backup": []
+    },
+    {
+      "zone": "Z_KOL",
+      "sku": "SKU_VAX",
+      "dc": "DC_DELHI",
+      "lane": "L044",
+      "backup": []
+    },
+    {
+      "zone": "Z_KOL",
+      "sku": "SKU_FMCG",
+      "dc": "DC_DELHI",
+      "lane": "L044",
+      "backup": [
+        {
+          "dc": "DC_NAGPUR",
+          "lane": "L041"
+        }
+      ]
+    },
+    {
+      "zone": "Z_KOL",
+      "sku": "SKU_ELEC",
+      "dc": "DC_DELHI",
+      "lane": "L044",
+      "backup": [
+        {
+          "dc": "DC_NAGPUR",
+          "lane": "L041"
+        }
+      ]
+    },
+    {
+      "zone": "Z_PUN",
+      "sku": "SKU_VAX",
+      "dc": "DC_PUNE",
+      "lane": "L037",
+      "backup": []
+    },
+    {
+      "zone": "Z_PUN",
+      "sku": "SKU_FMCG",
+      "dc": "DC_PUNE",
+      "lane": "L037",
+      "backup": []
+    },
+    {
+      "zone": "Z_PUN",
+      "sku": "SKU_ELEC",
+      "dc": "DC_PUNE",
+      "lane": "L037",
+      "backup": []
+    },
+    {
+      "zone": "Z_AMD",
+      "sku": "SKU_VAX",
+      "dc": "DC_DELHI",
+      "lane": "L042",
+      "backup": []
+    },
+    {
+      "zone": "Z_AMD",
+      "sku": "SKU_FMCG",
+      "dc": "DC_DELHI",
+      "lane": "L042",
+      "backup": []
+    },
+    {
+      "zone": "Z_AMD",
+      "sku": "SKU_ELEC",
+      "dc": "DC_DELHI",
+      "lane": "L042",
+      "backup": []
+    },
+    {
+      "zone": "Z_VJA",
+      "sku": "SKU_VAX",
+      "dc": "DC_HYD_SHAMSHABAD",
+      "lane": "L032",
+      "backup": []
+    },
+    {
+      "zone": "Z_VJA",
+      "sku": "SKU_FMCG",
+      "dc": "DC_HYD_SHAMSHABAD",
+      "lane": "L032",
+      "backup": []
+    },
+    {
+      "zone": "Z_VJA",
+      "sku": "SKU_ELEC",
+      "dc": "DC_HYD_SHAMSHABAD",
+      "lane": "L032",
+      "backup": []
+    },
+    {
+      "zone": "Z_VSK",
+      "sku": "SKU_VAX",
+      "dc": "DC_HYD_SHAMSHABAD",
+      "lane": "L043",
+      "backup": []
+    },
+    {
+      "zone": "Z_VSK",
+      "sku": "SKU_FMCG",
+      "dc": "DC_HYD_MEDCHAL",
+      "lane": "L033",
+      "backup": [
+        {
+          "dc": "DC_HYD_SHAMSHABAD",
+          "lane": "L043"
+        }
+      ]
+    },
+    {
+      "zone": "Z_VSK",
+      "sku": "SKU_ELEC",
+      "dc": "DC_HYD_MEDCHAL",
+      "lane": "L033",
+      "backup": [
+        {
+          "dc": "DC_HYD_SHAMSHABAD",
+          "lane": "L043"
+        }
+      ]
+    },
+    {
+      "zone": "Z_CBE",
+      "sku": "SKU_VAX",
+      "dc": "DC_BLR",
+      "lane": "L036",
+      "backup": []
+    },
+    {
+      "zone": "Z_CBE",
+      "sku": "SKU_FMCG",
+      "dc": "DC_BLR",
+      "lane": "L036",
+      "backup": []
+    },
+    {
+      "zone": "Z_CBE",
+      "sku": "SKU_ELEC",
+      "dc": "DC_BLR",
+      "lane": "L036",
+      "backup": []
+    },
+    {
+      "zone": "Z_JAI",
+      "sku": "SKU_VAX",
+      "dc": "DC_DELHI",
+      "lane": "L040",
+      "backup": []
+    },
+    {
+      "zone": "Z_JAI",
+      "sku": "SKU_FMCG",
+      "dc": "DC_DELHI",
+      "lane": "L040",
+      "backup": []
+    },
+    {
+      "zone": "Z_JAI",
+      "sku": "SKU_ELEC",
+      "dc": "DC_DELHI",
+      "lane": "L040",
+      "backup": []
+    }
+  ]
+}

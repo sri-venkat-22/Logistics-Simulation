@@ -1,0 +1,11 @@
+{
+  "name": "Cyclone over Chennai (demo story)",
+  "description": "A Michaung-class cyclone makes landfall near Chennai: nodes inside the track close, lanes crossing it slow down 2.5x.",
+  "type": "cyclone",
+  "target": "PORT_CHENNAI",
+  "polygon": [[80.05, 12.55], [80.9, 12.7], [81.25, 13.3], [80.95, 13.9], [80.3, 13.95], [79.95, 13.5], [79.9, 12.95]],
+  "start": "+6h",
+  "duration_h": 120,
+  "severity": 0.9,
+  "params": {"radius_km": 150, "lane_time_multiplier": 2.5, "close_nodes": true}
+}

@@ -1,0 +1,10 @@
+[project]
+name = "aegis-twin"
+version = "0.2.0"
+description = "AEGIS Twin — logistics network digital twin (PNT1)"
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["slow: long-running benchmarks (select with -m slow)"]

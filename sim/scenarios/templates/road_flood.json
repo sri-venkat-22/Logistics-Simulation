@@ -1,0 +1,22 @@
+{
+  "name": "ORR flooded near Shamshabad",
+  "description": "Monsoon flooding on the Outer Ring Road corridor into Shamshabad: road lanes into the pharma DC slow to a crawl; the SUMO micro-twin closes the ORR edges.",
+  "type": "road_flood",
+  "target": "DC_HYD_SHAMSHABAD",
+  "polygon": null,
+  "start": "+2h",
+  "duration_h": 36,
+  "severity": 0.8,
+  "params": {
+    "lanes": [
+      "L006",
+      "L015",
+      "L047"
+    ],
+    "sumo_edges": [
+      "1206122629",
+      "1213998124"
+    ],
+    "speed_factor": 0.15
+  }
+}

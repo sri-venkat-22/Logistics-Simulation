@@ -1,0 +1,11 @@
+{
+  "name": "Patancheru plant outage",
+  "description": "The Patancheru pharma plant loses production (power failure / quality hold) for 3 days; vaccines to every cold-chain DC are affected.",
+  "type": "supplier_failure",
+  "target": "PLANT_PATANCHERU",
+  "polygon": null,
+  "start": "+12h",
+  "duration_h": 72,
+  "severity": 1.0,
+  "params": {"capacity_factor": 0.0}
+}

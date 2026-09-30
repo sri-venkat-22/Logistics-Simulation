@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <input>
+        <net-file value="hyderabad.net.xml.gz"/>
+        <route-files value="cars.rou.xml,trucks.rou.xml"/>
+        <additional-files value="vtypes.add.xml,parking.add.xml"/>
+    </input>
+    <time>
+        <begin value="0"/>
+        <step-length value="1"/>
+    </time>
+    <processing>
+        <time-to-teleport value="300"/>
+        <ignore-route-errors value="true"/>
+        <device.rerouting.adaptation-interval value="60"/>
+    </processing>
+    <routing>
+        <device.rerouting.probability value="0.2"/>
+        <device.rerouting.period value="300"/>
+    </routing>
+    <report>
+        <no-step-log value="true"/>
+        <no-warnings value="true"/>
+    </report>
+</configuration>

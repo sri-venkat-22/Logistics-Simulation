@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AEGIS micro-twin vehicle types -->
+<additional>
+    <!-- freight truck: 12 m rigid/semi, 22 m/s (79 km/h) cap -->
+    <vType id="truck" vClass="truck" maxSpeed="22" length="12" minGap="3" accel="1.0" decel="4.0"
+           sigma="0.5" speedFactor="0.95" speedDev="0.05" guiShape="truck" color="34,211,238"/>
+    <vType id="car" vClass="passenger" length="4.5" accel="2.6" decel="4.5" sigma="0.5"
+           speedFactor="1.0" speedDev="0.1" color="154,167,189"/>
+</additional>

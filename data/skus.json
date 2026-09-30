@@ -2,28 +2,46 @@
   {
     "id": "SKU_VAX",
     "family": "vaccine",
-    "name": "Vaccines (2\u20138 \u00b0C)",
+    "name": "Vaccines (2–8 °C)",
+    "unit": "box of 100 doses",
     "unit_value": 1850,
+    "unit_weight_kg": 2.5,
     "perishable": true,
     "shelf_life_h": 720,
-    "cold_chain": true
+    "cold_chain": true,
+    "sea_imported": false,
+    "base_demand_per_million_day": 9.0,
+    "holding_rate_yr": 0.3,
+    "stockout_penalty": 900
   },
   {
     "id": "SKU_FMCG",
     "family": "fmcg",
     "name": "FMCG staples",
+    "unit": "case",
     "unit_value": 120,
+    "unit_weight_kg": 9.0,
     "perishable": false,
     "shelf_life_h": null,
-    "cold_chain": false
+    "cold_chain": false,
+    "sea_imported": false,
+    "base_demand_per_million_day": 140.0,
+    "holding_rate_yr": 0.2,
+    "stockout_penalty": 40
   },
   {
     "id": "SKU_ELEC",
     "family": "electronics",
     "name": "Consumer electronics",
+    "unit": "carton",
     "unit_value": 9400,
+    "unit_weight_kg": 6.0,
     "perishable": false,
     "shelf_life_h": null,
-    "cold_chain": false
+    "cold_chain": false,
+    "sea_imported": true,
+    "base_demand_per_million_day": 12.0,
+    "holding_rate_yr": 0.25,
+    "stockout_penalty": 1500
   }
 ]
