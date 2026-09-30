@@ -1,5 +1,7 @@
 # AEGIS Twin — Logistics Network Digital Twin (PNT1)
 
+**New here? Start with the step-by-step [tutorial](docs/TUTORIAL.md).**
+
 > *See every shipment. Simulate every shock. Survive every attack.*
 
 A two-scale digital twin of an Indian logistics network. SimPy runs the nation-wide macro twin; Eclipse SUMO runs a street-level micro twin of the Hyderabad logistics belt. A 9-layer trust pipeline keeps spoofed or corrupted data out, Monte Carlo what-ifs produce ranked mitigation plans, and a Fidelity Lab scores the twin against reality.
@@ -20,9 +22,7 @@ A two-scale digital twin of an Indian logistics network. SimPy runs the nation-w
 
 ### Prototype URL
 
-Vercel: **https://temporary-quick-neon-romn6e8.vercel.app** (deployed 30 Sep 2026)
-
-This is an anonymous *temporary* Vercel deployment: it expires 60 minutes after creation unless it is claimed into a Vercel account. For a permanent URL, claim it or redeploy with `vercel login` (see [Deploying the prototype](#deploying-the-prototype)), then update this line.
+Not currently hosted. The Level-1 demo used a temporary Vercel deployment, which has since expired. To host it permanently, deploy it yourself (see [Deploying the prototype](#deploying-the-prototype)), or run it locally.
 
 > Every number in the prototype is **seeded mock data** (`scripts/gen_mock.py`) and every screen says so with a *PROTOTYPE · MOCK DATA* badge. Geography is real: node coordinates are real sites, and Hyderabad road geometry comes from OpenStreetMap via OSRM.
 
