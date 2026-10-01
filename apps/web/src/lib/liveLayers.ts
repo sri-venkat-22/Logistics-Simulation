@@ -5,7 +5,7 @@
  *   trucks     TripsLayer trails of recent fixes + ScatterplotLayer heads at the interpolated position
  *   inventory  ColumnLayer 3-D bars of observed on-hand stock per DC
  */
-import { ArcLayer, ColumnLayer, ScatterplotLayer, TextLayer, GeoJsonLayer } from "@deck.gl/layers";
+import { ArcLayer, ColumnLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import { TripsLayer } from "@deck.gl/geo-layers";
 import type { Layer } from "@deck.gl/core";
 import type { ApiLane, ApiNetwork, ApiNode } from "./api";
