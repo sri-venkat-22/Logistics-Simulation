@@ -37,7 +37,31 @@ export const nodeTypeLabel: Record<NodeType, string> = {
 };
 export const modeLabel: Record<Mode, string> = { road: "Road", rail: "Rail", sea: "Sea", air: "Air" };
 
-export const CARTO_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+export const SATELLITE = {
+  version: 8,
+  sources: {
+    satellite: {
+      type: "raster",
+      tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+      tileSize: 256,
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: "background",
+      type: "background",
+      paint: { "background-color": "rgba(0,0,0,0)" }
+    },
+    {
+      id: "satellite",
+      type: "raster",
+      source: "satellite",
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
 export const OFM_DARK = "https://tiles.openfreemap.org/styles/dark";
 
 export const VIEW = {

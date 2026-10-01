@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Reac
 import { Map, useControl, type MapRef, type ViewState } from "react-map-gl/maplibre";
 import { MapboxOverlay, type MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
-import { CARTO_DARK } from "../lib/theme";
+import { SATELLITE } from "../lib/theme";
 
 function DeckGLOverlay(props: MapboxOverlayProps) {
   const overlay = useControl<MapboxOverlay>(() => new MapboxOverlay(props));
@@ -15,7 +15,7 @@ export interface DeckMapProps {
   viewState?: Partial<ViewState>;
   onMove?: (vs: ViewState) => void;
   layers: MapboxOverlayProps["layers"];
-  mapStyle?: string;
+  mapStyle?: any;
   globe?: boolean;
   interactive?: boolean;
   onClick?: (info: PickingInfo) => void;
@@ -27,7 +27,7 @@ export interface DeckMapProps {
 
 /** MapLibre basemap + deck.gl overlay, interleaved so deck layers sit under labels and work on the globe. */
 export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
-  { initialViewState, viewState, onMove, layers, mapStyle = CARTO_DARK, globe = false, interactive = true, onClick, getTooltip, onLoad, children, className },
+  { initialViewState, viewState, onMove, layers, mapStyle = SATELLITE, globe = false, interactive = true, onClick, getTooltip, onLoad, children, className },
   ref,
 ) {
   const [loaded, setLoaded] = useState(false);
@@ -38,7 +38,10 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
     return () => clearTimeout(t);
   }, []);
   return (
-    <div className={className ?? "absolute inset-0"}>
+    <div 
+      className={className ?? "absolute inset-0"} 
+      style={{ backgroundImage: "url('/stars.jpg')", backgroundSize: "cover", backgroundPosition: "center" }}
+    >
       <Map
         ref={inner}
         initialViewState={initialViewState}
@@ -47,9 +50,9 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
         projection={globe ? "globe" : "mercator"}
         interactive={interactive}
         attributionControl={{ compact: true }}
-        maxPitch={75}
+        maxPitch={85}
         onLoad={(e) => { setLoaded(true); onLoad?.(e as unknown as { target: maplibregl.Map }); }}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", background: "transparent" }}
       >
         <DeckGLOverlay
           layers={layers} interleaved onClick={onClick} getTooltip={getTooltip} pickingRadius={6}

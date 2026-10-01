@@ -12,6 +12,7 @@ const TrustCenter = lazy(() => import("./screens/TrustCenter"));
 const FidelityLab = lazy(() => import("./screens/FidelityLab"));
 const NetworkGraph = lazy(() => import("./screens/NetworkGraph"));
 const Ops = lazy(() => import("./screens/Ops"));
+const RoutingDemo = lazy(() => import("./screens/RoutingDemo"));
 
 function Loading() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/fidelity" element={<FidelityLab />} />
             <Route path="/network" element={<NetworkGraph />} />
             <Route path="/ops" element={<Ops />} />
+            <Route path="/routing" element={<RoutingDemo />} />
             <Route path="*" element={<ControlTower />} />
           </Routes>
         </Suspense>

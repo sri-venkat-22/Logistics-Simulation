@@ -1,4 +1,4 @@
-import { ScatterplotLayer, PathLayer, ColumnLayer, TextLayer, PolygonLayer } from "@deck.gl/layers";
+import { ScatterplotLayer, PathLayer, ColumnLayer, TextLayer, PolygonLayer, GeoJsonLayer } from "@deck.gl/layers";
 import { TripsLayer } from "@deck.gl/geo-layers";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
 import type { Layer } from "@deck.gl/core";

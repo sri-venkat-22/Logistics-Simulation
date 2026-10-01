@@ -4,6 +4,8 @@ import { useNavigate } from "react-router";
 import { Layers, X, ArrowDownLeft, ArrowUpRight, Clock3, History, Eye, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import type { PickingInfo } from "@deck.gl/core";
+import { PathLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
+import { ScenegraphLayer } from "@deck.gl/mesh-layers";
 import type { MapRef } from "react-map-gl/maplibre";
 import { DeckMap, useAnimationClock, tooltipStyle } from "../components/DeckMap";
 import { Badge, Bar, Button, Dot, Eyebrow, Glass, KpiCard } from "../components/ui";
@@ -14,6 +16,8 @@ import { useAegis } from "../lib/store";
 import { useLive, vehicles as liveVehicles, type LiveVehicle } from "../lib/live";
 import { liveLayers } from "../lib/liveLayers";
 import type { ApiLane, ApiNode } from "../lib/api";
+import { findBestRoute } from "../lib/routing";
+import { laneGeo } from "../lib/networkLayers";
 import { CameraPresets, LiveAlertFeed, LiveKpiStrip, LiveNodePanel, LiveStatusBar } from "./ControlTowerLive";
 import { C, VIEW, chartBase, nodeTypeLabel, modeLabel, sevColor } from "../lib/theme";
 
@@ -252,14 +256,103 @@ function LiveTower() {
     return () => window.clearInterval(id);
   }, []);
   const now = performance.now() / 1000;
+  const [start, setStart] = useState("DC_DELHI");
+  const [end, setEnd] = useState("PORT_CHENNAI");
+  const [disrupted, setDisrupted] = useState("");
+  const [simulating, setSimulating] = useState(false);
+  const [route, setRoute] = useState<{ laneIds: string[], nodes: NetNode[] } | null>(null);
+  const [roadPath, setRoadPath] = useState<[number, number][] | null>(null);
+  
+  const [spectate, setSpectate] = useState(false);
+  const [vs, setVs] = useState<any>(VIEW.INDIA);
+
   const layerList = network ? liveLayers({ t: now, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports, layers,
     selectedNode, version: dataVersion, zoom }) : [];
+
+  if (disrupted) {
+    const dNode = nodeById.get(disrupted);
+    if (dNode) {
+      layerList.push(new ScatterplotLayer({
+        id: "live-disrupted-node", data: [dNode], getPosition: (d: any) => [d.lon, d.lat], getRadius: 12, radiusUnits: "pixels", getFillColor: [239, 68, 68, 255], stroked: true, getLineColor: [255, 255, 255, 255], lineWidthMinPixels: 2, parameters: { depthCompare: "always" }
+      }));
+    }
+  }
+
+  if (route && route.nodes.length > 0) {
+    const geoList = route.laneIds.map(id => laneGeo.find(g => g.lane.id === id)).filter(Boolean) as typeof laneGeo;
+    const { PathLayer, ScatterplotLayer, TextLayer } = require("@deck.gl/layers");
+    const { ScenegraphLayer } = require("@deck.gl/mesh-layers");
+    
+    layerList.push(new ScatterplotLayer({
+      id: "route-nodes", data: route.nodes, getPosition: (d: any) => [d.lon, d.lat], getRadius: 8, radiusUnits: "pixels", getFillColor: [34, 211, 238, 255], stroked: true, getLineColor: [255, 255, 255, 255], lineWidthMinPixels: 2, parameters: { depthTest: false }
+    }));
+    layerList.push(new TextLayer({
+      id: "route-node-names", data: route.nodes, getPosition: (d: any) => [d.lon, d.lat], getText: (d: any) => d.name.split(" (")[0], getSize: 16, sizeUnits: "pixels", getColor: [255, 255, 255, 255], getPixelOffset: [0, -20], fontFamily: "Inter, sans-serif", fontWeight: 700, background: true, backgroundColor: [34, 211, 238, 50], backgroundPadding: [6, 4], parameters: { depthTest: false }
+    }));
+
+    if (roadPath && roadPath.length > 0) {
+      layerList.push(new PathLayer({
+        id: "best-route-path", data: [{ path: roadPath }], getPath: (d: any) => d.path, getColor: [34, 211, 238, 220], getWidth: 4, widthUnits: "pixels", parameters: { depthTest: false }
+      }));
+    } else if (geoList.length > 0) {
+      layerList.push(new PathLayer({
+        id: "best-route-path", data: geoList, getPath: (d: any) => d.path, getColor: [34, 211, 238, 200], getWidth: 3, widthUnits: "pixels", parameters: { depthTest: false }
+      }));
+    }
+  }
+
+  let truckPos: [number, number, number] | null = null;
+  let truckAngle = 0;
+
+  if (simulating && roadPath && roadPath.length > 1) {
+    const T_MAX = spectate ? 45000 : 45;
+    const progress = (t % T_MAX) / T_MAX;
+    const exactIndex = progress * (roadPath.length - 1);
+    const i0 = Math.floor(exactIndex);
+    const i1 = Math.min(i0 + 1, roadPath.length - 1);
+    const f = exactIndex - i0;
+    const p0 = roadPath[i0]; const p1 = roadPath[i1];
+    truckPos = [p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f, 0];
+    
+    const lookAhead = Math.min(i0 + 3, roadPath.length - 1);
+    const pAhead = roadPath[lookAhead];
+    if (pAhead) {
+      const dx = pAhead[0] - p0[0]; const dy = pAhead[1] - p0[1];
+      truckAngle = Math.atan2(dx, dy) * 180 / Math.PI;
+    }
+
+    const { TextLayer } = require("@deck.gl/layers");
+    const { ScenegraphLayer } = require("@deck.gl/mesh-layers");
+
+    layerList.push(new ScenegraphLayer({
+      id: "active-transport-3d", data: [truckPos], scenegraph: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb", getPosition: (d: any) => d, getOrientation: [0, -truckAngle, 90], sizeScale: 15000, _lighting: "pbr", parameters: { depthTest: false }
+    }));
+    
+    layerList.push(new TextLayer({
+      id: "truck-pointer", data: [truckPos], getPosition: (d: any) => d, getText: () => "⬇ TRUCK", getSize: 16, sizeUnits: "pixels", getColor: [239, 68, 68, 255], getPixelOffset: [0, -45], fontFamily: "Inter, sans-serif", fontWeight: 800, background: true, backgroundColor: [255, 255, 255, 200], backgroundPadding: [4, 2], parameters: { depthTest: false }
+    }));
+  }
+
+  let activeVs = vs;
+  if (spectate && truckPos) {
+    activeVs = {
+      ...vs,
+      longitude: truckPos[0],
+      latitude: truckPos[1],
+      zoom: 18.5,
+      pitch: 85,
+      bearing: truckAngle
+    };
+  }
+
+
   return (
     <div className="absolute inset-0">
       <DeckMap
         ref={mapRef}
         globe
-        initialViewState={VIEW.INDIA}
+        viewState={activeVs}
+        onMove={v => { setVs(v); if (spectate) setSpectate(false); }}
         layers={layerList}
         onClick={(info: PickingInfo) => {
           const o = info.object as ApiNode | undefined;
@@ -292,6 +385,78 @@ function LiveTower() {
         {selectedNode ? <LiveNodePanel key={selectedNode} id={selectedNode} /> : <LiveAlertFeed key="alerts" />}
       </AnimatePresence>
       <LiveStatusBar fps={fps} />
+      
+      <div className="absolute top-[320px] left-4 w-[280px] glass p-4 rounded-xl border border-line z-10 flex flex-col gap-3 shadow-lg">
+        <div>
+          <h2 className="text-[13px] font-semibold text-ink">Manual Routing Dispatch</h2>
+          <p className="text-[10px] text-ink-3 mt-1 leading-tight">Test optimal routing on the live map.</p>
+        </div>
+
+        <div className="flex flex-col gap-2.5">
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold tracking-wider text-ink-3 uppercase">Origin</span>
+            <select className="bg-white/5 border border-line rounded-lg px-2.5 py-1.5 text-[12px] text-ink outline-none" value={start} onChange={e => setStart(e.target.value)}>
+              {network?.nodes.filter(n => n.type !== "zone").map(n => (
+                <option key={n.id} value={n.id}>{n.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold tracking-wider text-ink-3 uppercase">Destination</span>
+            <select className="bg-white/5 border border-line rounded-lg px-2.5 py-1.5 text-[12px] text-ink outline-none" value={end} onChange={e => setEnd(e.target.value)}>
+              {network?.nodes.filter(n => n.type !== "zone").map(n => (
+                <option key={n.id} value={n.id}>{n.name}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-[10px] font-semibold tracking-wider text-bad uppercase">Inject Disruption</span>
+            <select className="bg-bad/10 border border-bad/30 rounded-lg px-2.5 py-1.5 text-[12px] text-bad outline-none" value={disrupted} onChange={e => setDisrupted(e.target.value)}>
+              <option value="">None (Normal)</option>
+              {network?.nodes.filter(n => n.type !== "zone").map(n => (
+                <option key={n.id} value={n.id}>{n.name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="flex gap-2 mt-1">
+          <Button 
+            onClick={async () => { 
+              const bestRoute = findBestRoute(start, end, disrupted ? [disrupted] : []);
+              setRoute(bestRoute); 
+              setSimulating(false);
+              setSpectate(false);
+              if (bestRoute.nodes.length > 1) {
+                const coords = bestRoute.nodes.map(n => `${n.lon.toFixed(5)},${n.lat.toFixed(5)}`).join(";");
+                try {
+                  const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
+                  const res = await fetch(url);
+                  const data = await res.json();
+                  if (data.routes && data.routes.length > 0) {
+                    setRoadPath(data.routes[0].geometry.coordinates);
+                    setSimulating(true);
+                  }
+                } catch (err) {
+                  console.error(err);
+                }
+              }
+            }} 
+            className="flex-1"
+          >
+            Start Navigation
+          </Button>
+          
+          {simulating && (
+            <button 
+              onClick={() => setSpectate(!spectate)} 
+              className={`px-3 font-medium rounded text-[12px] border transition ${spectate ? 'bg-ok text-bg border-ok' : 'bg-white/5 text-ink border-line hover:bg-white/10'}`}
+            >
+              {spectate ? "Stop" : "Spectate 🎥"}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
