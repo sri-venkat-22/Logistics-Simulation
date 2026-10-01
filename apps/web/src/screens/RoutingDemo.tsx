@@ -26,15 +26,18 @@ export default function RoutingDemo() {
   let truckAngle = 0;
 
   if (simulating && roadPath && roadPath.length > 1) {
-    const progress = (t % T_MAX) / T_MAX;
-    const exactIndex = progress * (roadPath.length - 1);
+    const progress = Math.max(0, (t % T_MAX) / T_MAX);
+    const exactIndex = Math.max(0, progress * (roadPath.length - 1));
     const i0 = Math.floor(exactIndex);
     const i1 = Math.min(i0 + 1, roadPath.length - 1);
     const f = exactIndex - i0;
     
     const p0 = roadPath[i0];
     const p1 = roadPath[i1];
-    truckPos = [ p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f, 0 ];
+    
+    if (p0 && p1) {
+      truckPos = [ p0[0] + (p1[0] - p0[0]) * f, p0[1] + (p1[1] - p0[1]) * f, 0 ];
+    }
 
     const lookAhead = Math.min(i0 + 3, roadPath.length - 1);
     const pAhead = roadPath[lookAhead];
