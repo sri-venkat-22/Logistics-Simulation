@@ -4,8 +4,7 @@ import { useNavigate } from "react-router";
 import { Layers, X, ArrowDownLeft, ArrowUpRight, Clock3, History, Eye, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import type { PickingInfo } from "@deck.gl/core";
-import { PathLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
-import { ScenegraphLayer } from "@deck.gl/mesh-layers";
+import { PathLayer } from "@deck.gl/layers";
 import type { MapRef } from "react-map-gl/maplibre";
 import { DeckMap, useAnimationClock, tooltipStyle } from "../components/DeckMap";
 import { Badge, Bar, Button, Dot, Eyebrow, Glass, KpiCard } from "../components/ui";
@@ -16,7 +15,6 @@ import { useAegis } from "../lib/store";
 import { useLive, vehicles as liveVehicles, type LiveVehicle } from "../lib/live";
 import { liveLayers } from "../lib/liveLayers";
 import type { ApiLane, ApiNode } from "../lib/api";
-import { findBestRoute } from "../lib/routing";
 import { laneGeo, particles } from "../lib/networkLayers";
 import { normalisedTimestamps } from "../lib/geo";
 import { CameraPresets, LiveAlertFeed, LiveKpiStrip, LiveNodePanel, LiveStatusBar } from "./ControlTowerLive";
@@ -257,7 +255,7 @@ function LiveTower() {
     return () => window.clearInterval(id);
   }, []);
   const now = performance.now() / 1000;
-  const [realRoadsLoaded, setRealRoadsLoaded] = useState(false);
+  const [, setRealRoadsLoaded] = useState(false);
   
   useEffect(() => {
     let mounted = true;

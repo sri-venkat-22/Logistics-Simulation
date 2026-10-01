@@ -3,9 +3,9 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 
-import { ErrorBoundary } from "react-error-boundary";
+import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 
-function ErrorFallback({error}: {error: Error}) {
+function ErrorFallback({ error }: FallbackProps) {
   return (
     <div style={{color: 'red', padding: '20px', backgroundColor: 'black', height: '100vh'}}>
       <h2>Crash!</h2>
