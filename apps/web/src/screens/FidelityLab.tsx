@@ -4,6 +4,8 @@ import { Chart } from "../components/Chart";
 import { Badge, Button, Eyebrow, Glass, PanelHeader, Ticker } from "../components/ui";
 import { fidelity, scenario } from "../lib/data";
 import { C, axis, chartBase, sevColor } from "../lib/theme";
+import { useLive } from "../lib/live";
+import FidelityLabLive from "./FidelityLabLive";
 
 function downloadReport() {
   const rows = fidelity.metrics.map((m) => `<tr><td>${m.label}</td><td>${m.value}${m.unit}</td><td>${m.target}</td></tr>`).join("");
@@ -23,7 +25,7 @@ function downloadReport() {
   URL.revokeObjectURL(a.href);
 }
 
-export default function FidelityLab() {
+function FidelityLabMock() {
   const eta = fidelity.eta;
   const etaOption = useMemo(() => ({
     ...chartBase,
@@ -133,4 +135,10 @@ export default function FidelityLab() {
       </div>
     </div>
   );
+}
+
+/** Measured model quality when the API is reachable; the Level-1 prototype otherwise. */
+export default function FidelityLab() {
+  const apiUp = useLive((s) => s.status === "live" || !!s.network);
+  return apiUp ? <FidelityLabLive /> : <FidelityLabMock />;
 }

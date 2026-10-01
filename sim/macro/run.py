@@ -37,9 +37,9 @@ def load_scenario(ref: str) -> Scenario:
     return Scenario.load(p)
 
 
-def simulate(days: float, start: datetime, seed: int, scenarios: list[Scenario]) -> tuple[dict, Twin]:
+def simulate(days: float, start: datetime, seed: int, scenarios: list[Scenario], failures: bool = True) -> tuple[dict, Twin]:
     net = Network()
-    twin = Twin(net, DemandModel(net), start, seed=seed, scenarios=scenarios)
+    twin = Twin(net, DemandModel(net), start, seed=seed, scenarios=scenarios, random_failures=failures)
     return twin.run(days), twin
 
 
@@ -71,6 +71,8 @@ def print_report(k: dict, label: str, base: dict | None = None, wall_s: float | 
     row("Cost: transport", fmt_inr(c["transport"]))
     row("Cost: holding", fmt_inr(c["holding"]))
     row("Cost: stock-out penalty", fmt_inr(c["penalty"]))
+    if c.get("ordering"):
+        row("Cost: ordering", fmt_inr(c["ordering"]))
     row("Cost: total", fmt_inr(c["total"]),
         "" if base is None else f"{(c['total'] - base['cost_inr']['total']) / 1e5:+,.1f} L vs baseline")
     row("CO₂", f"{k['co2_t']:,.1f} t", d_num(k["co2_t"], base["co2_t"], " t") if base else "")
@@ -85,9 +87,12 @@ def print_report(k: dict, label: str, base: dict | None = None, wall_s: float | 
     if worst:
         print("\n  Stock-out hours (DC / SKU): " + ", ".join(f"{name} {v['stockout_hours']:.0f} h" for name, v in worst))
     for e in k["disruptions"]:
-        extra = f" · closed {','.join(e['nodes'])}" if e.get("nodes") else ""
+        extra = f" · nodes {','.join(e['nodes'])}" if e.get("nodes") else ""
         extra += f" · {len(e['lanes'])} lanes slowed" if e.get("lanes") else ""
-        print(f"  ⚡ {e['ts']}  {e['event'].replace('_', ' ')}: {e['type']} @ {e['target']}{extra}")
+        ttr = f"TTR {e['ttr_h'] / 24:.1f} d" if e["ttr_h"] is not None else "TTR ongoing"
+        tts = f"TTS {e['tts_h'] / 24:.1f} d" if e["tts_h"] is not None else f"TTS > {e['survived_h'] / 24:.1f} d (no stock-out)"
+        flag = "  EXPOSED" if e["exposed"] else ""
+        print(f"  ⚡ {e['ts']}  {e['kind'].replace('_', ' ')}: {e['type']} @ {e['target']}{extra} · {ttr} · {tts}{flag}")
     if wall_s is not None:
         print(f"\n  simulated {k['days']:g} days in {wall_s:.2f} s wall-clock")
 
@@ -102,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--compare", action="store_true", help="also run the baseline with the same seed and show deltas")
     ap.add_argument("--json", type=Path, help="write KPIs as JSON")
     ap.add_argument("--events", type=Path, help="write the event log as CSV")
+    ap.add_argument("--no-failures", action="store_true", help="disable random supplier outages (MTBF / MTTR)")
     a = ap.parse_args(argv)
 
     start = datetime.fromisoformat(a.start).replace(tzinfo=IST)
@@ -110,9 +116,9 @@ def main(argv: list[str] | None = None) -> int:
 
     base = None
     if a.compare and scenarios:
-        base, _ = simulate(a.days, start, a.seed, [])
+        base, _ = simulate(a.days, start, a.seed, [], not a.no_failures)
     t0 = time.perf_counter()
-    k, twin = simulate(a.days, start, a.seed, scenarios)
+    k, twin = simulate(a.days, start, a.seed, scenarios, not a.no_failures)
     wall = time.perf_counter() - t0
     if base is not None:
         print_report(base, "baseline")
@@ -121,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.json:
         a.json.write_text(json.dumps({"scenario": label, "kpis": k, "baseline": base}, indent=2, default=str))
     if a.events:
-        keys = sorted({key for e in twin.events for key in e})
+        keys = ["t_h", "ts", "event", *sorted({key for e in twin.events for key in e} - {"t_h", "ts", "event"})]
         with a.events.open("w", newline="") as f:
             w = csv.DictWriter(f, fieldnames=keys)
             w.writeheader()

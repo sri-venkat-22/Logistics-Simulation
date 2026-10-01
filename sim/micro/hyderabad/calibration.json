@@ -1,0 +1,333 @@
+{
+ "generated": "2026-09-30T22:15:51+05:30",
+ "seed": 7,
+ "sumo_cfg": "hyderabad.sumocfg",
+ "trucks": 84,
+ "arrived": 84,
+ "departure_window_s": 3000,
+ "wall_s": 146.7,
+ "model": "lead time = handling_h + LogNormal(drive_mu, drive_sigma) hours",
+ "lanes": {
+  "L015": {
+   "from": "PLANT_PATANCHERU",
+   "to": "DC_HYD_SHAMSHABAD",
+   "corridors": [
+    "Patancheru Plant|Shamshabad DC"
+   ],
+   "n": 12,
+   "handling_h": 4.0,
+   "drive_mu": -0.38953,
+   "drive_sigma": 0.05,
+   "drive_mean_h": 0.6774,
+   "drive_p10_h": 0.6751,
+   "drive_p50_h": 0.6765,
+   "drive_p90_h": 0.6801,
+   "prior_drive_mean_h": 1.3605,
+   "prior_lt_mean_h": 5.4,
+   "calibrated_lt_mean_h": 4.6774,
+   "wasserstein1_prior_h": 0.6764,
+   "samples_h": [
+    0.6763,
+    0.6764,
+    0.6767,
+    0.6762,
+    0.6782,
+    0.6849,
+    0.6719,
+    0.6802,
+    0.6759,
+    0.675,
+    0.6788,
+    0.678
+   ]
+  },
+  "L016": {
+   "from": "PLANT_PATANCHERU",
+   "to": "DC_HYD_MEDCHAL",
+   "corridors": [
+    "Patancheru Plant|Medchal DC"
+   ],
+   "n": 12,
+   "handling_h": 4.0,
+   "drive_mu": -0.80798,
+   "drive_sigma": 0.05,
+   "drive_mean_h": 0.4458,
+   "drive_p10_h": 0.4361,
+   "drive_p50_h": 0.4452,
+   "drive_p90_h": 0.4539,
+   "prior_drive_mean_h": 1.0105,
+   "prior_lt_mean_h": 5.0,
+   "calibrated_lt_mean_h": 4.4458,
+   "wasserstein1_prior_h": 0.56,
+   "samples_h": [
+    0.4425,
+    0.4495,
+    0.4346,
+    0.4416,
+    0.4499,
+    0.4386,
+    0.464,
+    0.4487,
+    0.4358,
+    0.4432,
+    0.4544,
+    0.4473
+   ]
+  },
+  "L047": {
+   "from": "DC_HYD_MEDCHAL",
+   "to": "DC_HYD_SHAMSHABAD",
+   "corridors": [
+    "Medchal DC|Shamshabad DC"
+   ],
+   "n": 12,
+   "handling_h": 4.0,
+   "drive_mu": 0.1229,
+   "drive_sigma": 0.06006,
+   "drive_mean_h": 1.1326,
+   "drive_p10_h": 1.0242,
+   "drive_p50_h": 1.1604,
+   "drive_p90_h": 1.1839,
+   "prior_drive_mean_h": 2.1816,
+   "prior_lt_mean_h": 6.2,
+   "calibrated_lt_mean_h": 5.1326,
+   "wasserstein1_prior_h": 1.0363,
+   "samples_h": [
+    1.0203,
+    1.0182,
+    1.0594,
+    1.1694,
+    1.1502,
+    1.1513,
+    1.1845,
+    1.175,
+    1.1736,
+    1.2106,
+    1.1784,
+    1.1004
+   ]
+  },
+  "L030": {
+   "from": "DC_HYD_MEDCHAL",
+   "to": "Z_HYD",
+   "corridors": [
+    "Medchal DC|Kompally",
+    "Medchal DC|Kukatpally",
+    "Medchal DC|Gachibowli",
+    "Medchal DC|Hitec City",
+    "Medchal DC|Mehdipatnam",
+    "Medchal DC|Secunderabad"
+   ],
+   "n": 24,
+   "handling_h": 4.0,
+   "drive_mu": -0.60308,
+   "drive_sigma": 0.37979,
+   "drive_mean_h": 0.5852,
+   "drive_p10_h": 0.3007,
+   "drive_p50_h": 0.5723,
+   "drive_p90_h": 0.9579,
+   "prior_drive_mean_h": 0.8158,
+   "prior_lt_mean_h": 4.8,
+   "calibrated_lt_mean_h": 4.5852,
+   "wasserstein1_prior_h": 0.2298,
+   "samples_h": [
+    0.2883,
+    0.2991,
+    0.3004,
+    0.3014,
+    0.4027,
+    0.4236,
+    0.4139,
+    0.4146,
+    0.6331,
+    0.6461,
+    0.6374,
+    0.6446,
+    0.5603,
+    0.5727,
+    0.5718,
+    0.5462,
+    0.864,
+    1.0017,
+    1.0156,
+    0.9982,
+    0.5688,
+    0.6047,
+    0.675,
+    0.6599
+   ]
+  },
+  "L031": {
+   "from": "DC_HYD_SHAMSHABAD",
+   "to": "Z_HYD",
+   "corridors": [
+    "Shamshabad DC|Kompally",
+    "Shamshabad DC|Kukatpally",
+    "Shamshabad DC|Gachibowli",
+    "Shamshabad DC|Hitec City",
+    "Shamshabad DC|Mehdipatnam",
+    "Shamshabad DC|Secunderabad"
+   ],
+   "n": 24,
+   "handling_h": 4.0,
+   "drive_mu": -0.58784,
+   "drive_sigma": 0.2291,
+   "drive_mean_h": 0.5697,
+   "drive_p10_h": 0.3884,
+   "drive_p50_h": 0.5473,
+   "drive_p90_h": 0.7929,
+   "prior_drive_mean_h": 0.6289,
+   "prior_lt_mean_h": 4.6,
+   "calibrated_lt_mean_h": 4.5697,
+   "wasserstein1_prior_h": 0.0613,
+   "samples_h": [
+    0.7946,
+    0.7983,
+    0.8529,
+    0.7889,
+    0.6099,
+    0.6184,
+    0.6404,
+    0.6088,
+    0.5301,
+    0.5116,
+    0.4979,
+    0.5092,
+    0.5147,
+    0.5108,
+    0.5242,
+    0.5193,
+    0.3774,
+    0.3871,
+    0.3856,
+    0.3916,
+    0.5658,
+    0.5731,
+    0.5986,
+    0.5644
+   ]
+  }
+ },
+ "corridors": {
+  "Medchal DC|Gachibowli": {
+   "n": 4,
+   "mean_s": 2305.1,
+   "p10_s": 2283.8,
+   "p50_s": 2307.7,
+   "p90_s": 2324.3,
+   "free_flow_s": 2071.3
+  },
+  "Medchal DC|Hitec City": {
+   "n": 4,
+   "mean_s": 2025.9,
+   "p10_s": 1981.6,
+   "p50_s": 2037.8,
+   "p90_s": 2060.8,
+   "free_flow_s": 1797.6
+  },
+  "Medchal DC|Kompally": {
+   "n": 4,
+   "mean_s": 1070.3,
+   "p10_s": 1049.5,
+   "p50_s": 1079.2,
+   "p90_s": 1084.0,
+   "free_flow_s": 967.2
+  },
+  "Medchal DC|Kukatpally": {
+   "n": 4,
+   "mean_s": 1489.3,
+   "p10_s": 1461.8,
+   "p50_s": 1491.4,
+   "p90_s": 1515.2,
+   "free_flow_s": 1323.3
+  },
+  "Medchal DC|Mehdipatnam": {
+   "n": 4,
+   "mean_s": 3491.6,
+   "p10_s": 3255.3,
+   "p50_s": 3599.9,
+   "p90_s": 3641.2,
+   "free_flow_s": 2657.7
+  },
+  "Medchal DC|Secunderabad": {
+   "n": 4,
+   "mean_s": 2257.7,
+   "p10_s": 2086.6,
+   "p50_s": 2276.4,
+   "p90_s": 2413.8,
+   "free_flow_s": 1501.5
+  },
+  "Medchal DC|Shamshabad DC": {
+   "n": 12,
+   "mean_s": 4077.4,
+   "p10_s": 3687.0,
+   "p50_s": 4177.3,
+   "p90_s": 4262.1,
+   "free_flow_s": 3081.6
+  },
+  "Patancheru Plant|Medchal DC": {
+   "n": 12,
+   "mean_s": 1605.0,
+   "p10_s": 1570.0,
+   "p50_s": 1602.8,
+   "p90_s": 1634.1,
+   "free_flow_s": 1514.0
+  },
+  "Patancheru Plant|Shamshabad DC": {
+   "n": 12,
+   "mean_s": 2438.6,
+   "p10_s": 2430.3,
+   "p50_s": 2435.5,
+   "p90_s": 2448.3,
+   "free_flow_s": 2363.8
+  },
+  "Shamshabad DC|Gachibowli": {
+   "n": 4,
+   "mean_s": 1844.0,
+   "p10_s": 1804.7,
+   "p50_s": 1837.5,
+   "p90_s": 1888.4,
+   "free_flow_s": 1698.3
+  },
+  "Shamshabad DC|Hitec City": {
+   "n": 4,
+   "mean_s": 1862.1,
+   "p10_s": 1843.1,
+   "p50_s": 1861.3,
+   "p90_s": 1881.8,
+   "free_flow_s": 1705.9
+  },
+  "Shamshabad DC|Kompally": {
+   "n": 4,
+   "mean_s": 2911.2,
+   "p10_s": 2846.0,
+   "p50_s": 2867.2,
+   "p90_s": 3011.5,
+   "free_flow_s": 2413.3
+  },
+  "Shamshabad DC|Kukatpally": {
+   "n": 4,
+   "mean_s": 2229.7,
+   "p10_s": 2192.8,
+   "p50_s": 2210.9,
+   "p90_s": 2281.7,
+   "free_flow_s": 2113.2
+  },
+  "Shamshabad DC|Mehdipatnam": {
+   "n": 4,
+   "mean_s": 1387.5,
+   "p10_s": 1367.5,
+   "p50_s": 1390.8,
+   "p90_s": 1404.9,
+   "free_flow_s": 1359.2
+  },
+  "Shamshabad DC|Secunderabad": {
+   "n": 4,
+   "mean_s": 2071.7,
+   "p10_s": 2033.4,
+   "p50_s": 2050.1,
+   "p90_s": 2127.3,
+   "free_flow_s": 1749.9
+  }
+ }
+}

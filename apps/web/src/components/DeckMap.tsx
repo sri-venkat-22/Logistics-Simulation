@@ -3,6 +3,7 @@ import { Map, useControl, type MapRef, type ViewState } from "react-map-gl/mapli
 import { MapboxOverlay, type MapboxOverlayProps } from "@deck.gl/mapbox";
 import type { PickingInfo } from "@deck.gl/core";
 import { CARTO_DARK } from "../lib/theme";
+import type { Map as MaplibreMap } from "maplibre-gl";
 
 function DeckGLOverlay(props: MapboxOverlayProps) {
   const overlay = useControl<MapboxOverlay>(() => new MapboxOverlay(props));
@@ -20,7 +21,7 @@ export interface DeckMapProps {
   interactive?: boolean;
   onClick?: (info: PickingInfo) => void;
   getTooltip?: MapboxOverlayProps["getTooltip"];
-  onLoad?: (e: { target: maplibregl.Map }) => void;
+  onLoad?: (e: { target: MaplibreMap }) => void;
   children?: ReactNode;
   className?: string;
 }
@@ -32,6 +33,8 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
 ) {
   const [loaded, setLoaded] = useState(false);
   const inner = useRef<MapRef>(null);
+  // re-expose the handle once the map has loaded (inner.current is only set then)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useImperativeHandle(ref, () => inner.current!, [loaded]);
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 2500); // never leave a blank screen if tiles are slow
@@ -48,11 +51,12 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
         interactive={interactive}
         attributionControl={{ compact: true }}
         maxPitch={75}
-        onLoad={(e) => { setLoaded(true); onLoad?.(e as unknown as { target: maplibregl.Map }); }}
+        onLoad={(e) => { setLoaded(true); onLoad?.(e as unknown as { target: MaplibreMap }); }}
         style={{ width: "100%", height: "100%" }}
       >
         <DeckGLOverlay
           layers={layers} interleaved onClick={onClick} getTooltip={getTooltip} pickingRadius={6}
+          onError={(e, layer) => { console.error(`[deck] ${layer?.id ?? "deck"}: ${e?.message ?? e}`); return true; }}
           onHover={(info) => {
             const canvas = inner.current?.getCanvas();
             if (canvas) canvas.style.cursor = info.object ? "pointer" : "";

@@ -11,6 +11,8 @@ import { Badge, Button, Glass, ProgressRing, Ticker } from "../components/ui";
 import { network, nodeById, scenario, type Plan } from "../lib/data";
 import { cyclonePolygonLayer, networkLayers } from "../lib/networkLayers";
 import { useAegis } from "../lib/store";
+import { useLive } from "../lib/live";
+import ScenarioLabLive from "./ScenarioLabLive";
 import { C, axis, chartBase } from "../lib/theme";
 
 const ICONS: Record<string, LucideIcon> = { anchor: Anchor, tornado: Tornado, waves: Waves, "trending-up": TrendingUp, factory: Factory, hand: Hand, "wifi-off": WifiOff };
@@ -170,6 +172,12 @@ function scorePlan(p: Plan, w: number[]) {
 }
 
 export default function ScenarioLab() {
+  const offline = useLive((s) => s.status === "offline" && !s.network);
+  return offline ? <MockScenarioLab /> : <ScenarioLabLive />;
+}
+
+/** Level-1 prototype on seeded mock data (used when the API is not reachable). */
+function MockScenarioLab() {
   const t = useAnimationClock();
   const navigate = useNavigate();
   const { scenario: sc, setScenario, appliedPlan, applyPlan } = useAegis();

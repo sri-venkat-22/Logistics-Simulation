@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     end = a.minutes * 60
     peak, peak_t, samples = 0, 0, []
     busiest = (0.0, 0.0, 0)  # (sim s, wall s, vehicles) over the densest 5-minute window
-    win_start_wall, win_start_t, win_count = time.perf_counter(), 0.0, []
+    win_start_wall, _win_start_t, win_count = time.perf_counter(), 0.0, []
     t0 = time.perf_counter()
     while mt.now() < end:
         mt.step(1)

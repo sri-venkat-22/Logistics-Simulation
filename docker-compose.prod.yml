@@ -1,0 +1,76 @@
+# AEGIS Twin — production stack on one VM (Phase 8): Caddy (HTTPS + SPA) -> API -> TimescaleDB + Redis.
+#   cp .env.prod.example .env.prod   # fill in the secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# Images come from GHCR (built by .github/workflows/cd.yml). Only Caddy is published (80/443); the database, Redis and
+# the API are on an internal network. The API refuses to start with default secrets (AEGIS_ENV=prod).
+services:
+  db:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: aegis
+    volumes: [dbdata:/home/postgres/pgdata]
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis"]
+      interval: 5s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?set REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+    networks: [internal]
+    restart: unless-stopped
+  migrate:
+    image: ${AEGIS_API_IMAGE:-ghcr.io/sri-venkat-22/aegis-api:latest}
+    environment:
+      AEGIS_DB_URL: postgresql+psycopg://aegis:${POSTGRES_PASSWORD}@db/aegis
+    working_dir: /app/services/api
+    command: ["alembic", "upgrade", "head"]
+    networks: [internal]
+    depends_on: {db: {condition: service_healthy}}
+  api:
+    image: ${AEGIS_API_IMAGE:-ghcr.io/sri-venkat-22/aegis-api:latest}
+    env_file: .env.prod
+    environment:
+      AEGIS_ENV: prod
+      AEGIS_DB_URL: postgresql+psycopg://aegis:${POSTGRES_PASSWORD}@db/aegis
+      AEGIS_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      AEGIS_PUBLISHERS: reality-emulator:${AEGIS_PUBLISHER_KEY:?set AEGIS_PUBLISHER_KEY}
+    networks: [internal]
+    restart: unless-stopped
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_started}
+  # the demo's "reality": signed telemetry (SUMO city trucks + national trucks) into the API, live chaos and applied
+  # plans from Redis. Replace it with real gateways (same HMAC contract) in a real deployment.
+  emulator:
+    image: ${AEGIS_API_IMAGE:-ghcr.io/sri-venkat-22/aegis-api:latest}
+    command: ["python", "-m", "sim.reality.run", "--hours", "720", "--warmup-h", "${AEGIS_TWIN_WARMUP_H:-58}", "--realtime", "60",
+              "--http", "http://api:8000", "--chaos-redis", "redis://:${REDIS_PASSWORD}@redis:6379/0", "--gps-period", "2"]
+    environment:
+      AEGIS_MASTER_KEY: ${AEGIS_MASTER_KEY:?set AEGIS_MASTER_KEY}
+      AEGIS_PUBLISHER_KEY: ${AEGIS_PUBLISHER_KEY}
+    networks: [internal]
+    restart: unless-stopped
+    depends_on:
+      api: {condition: service_healthy}
+  web:
+    image: ${AEGIS_WEB_IMAGE:-ghcr.io/sri-venkat-22/aegis-web:latest}
+    environment:
+      AEGIS_DOMAIN: ${AEGIS_DOMAIN:?set AEGIS_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: [caddydata:/data, caddyconfig:/config]
+    networks: [internal]
+    restart: unless-stopped
+    depends_on: [api]
+networks:
+  internal: {}
+volumes:
+  dbdata:
+  redisdata:
+  caddydata:
+  caddyconfig:

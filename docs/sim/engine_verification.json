@@ -1,0 +1,213 @@
+{
+  "engine": "macro-3.0",
+  "generated": "2026-09-30T22:37:16+05:30",
+  "machine": "arm64 \u00b7 Darwin \u00b7 Python 3.11.9",
+  "quick": false,
+  "wall_s": 17.68,
+  "checks": [
+    {
+      "name": "V1 single-node (s,S), Poisson demand, analytic fill rate",
+      "params": {
+        "lambda_per_day": 20.0,
+        "lead_days": 2,
+        "s": 45,
+        "S": 80,
+        "review": "daily",
+        "days": 20000,
+        "warmup_days": 60,
+        "seed": 11
+      },
+      "analytic_fill_rate": 0.86968,
+      "simulated_fill_rate": 0.86942,
+      "rel_error": 0.0003,
+      "tolerance": 0.02,
+      "pass": true
+    },
+    {
+      "name": "V2 EOQ sanity check (deterministic demand, (R,Q) continuous review)",
+      "params": {
+        "D_per_day": 240.0,
+        "K": 5000.0,
+        "h_per_unit_day": 1.0,
+        "lead_days": 1.0,
+        "R": 250.0,
+        "cycles_measured": 200,
+        "warmup_cycles": 10,
+        "grid": [
+          600,
+          3000,
+          150
+        ]
+      },
+      "eoq": 1549.2,
+      "sim_argmin_Q": 1500,
+      "grid_point_nearest_eoq": 1500,
+      "max_rel_error_vs_formula": 0.0,
+      "tolerance": 0.02,
+      "all_filled": true,
+      "curve": [
+        {
+          "Q": 600,
+          "sim_cost_per_day": 2315.0,
+          "analytic_cost_per_day": 2315.0,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 750,
+          "sim_cost_per_day": 1990.0,
+          "analytic_cost_per_day": 1990.0,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 900,
+          "sim_cost_per_day": 1798.333,
+          "analytic_cost_per_day": 1798.333,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1050,
+          "sim_cost_per_day": 1682.857,
+          "analytic_cost_per_day": 1682.857,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1200,
+          "sim_cost_per_day": 1615.0,
+          "analytic_cost_per_day": 1615.0,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1350,
+          "sim_cost_per_day": 1578.889,
+          "analytic_cost_per_day": 1578.889,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1500,
+          "sim_cost_per_day": 1565.0,
+          "analytic_cost_per_day": 1565.0,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1650,
+          "sim_cost_per_day": 1567.273,
+          "analytic_cost_per_day": 1567.273,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1800,
+          "sim_cost_per_day": 1581.667,
+          "analytic_cost_per_day": 1581.667,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 1950,
+          "sim_cost_per_day": 1605.385,
+          "analytic_cost_per_day": 1605.385,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 2100,
+          "sim_cost_per_day": 1636.429,
+          "analytic_cost_per_day": 1636.429,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 2250,
+          "sim_cost_per_day": 1673.333,
+          "analytic_cost_per_day": 1673.333,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 2400,
+          "sim_cost_per_day": 1715.0,
+          "analytic_cost_per_day": 1715.0,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 2550,
+          "sim_cost_per_day": 1760.588,
+          "analytic_cost_per_day": 1760.588,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 2700,
+          "sim_cost_per_day": 1809.444,
+          "analytic_cost_per_day": 1809.444,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 2850,
+          "sim_cost_per_day": 1861.053,
+          "analytic_cost_per_day": 1861.053,
+          "orders": 200,
+          "fill_rate": 1.0
+        },
+        {
+          "Q": 3000,
+          "sim_cost_per_day": 1915.0,
+          "analytic_cost_per_day": 1915.0,
+          "orders": 200,
+          "fill_rate": 1.0
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "V3 3-node toy cross-checked against SupplyNetPy",
+      "params": {
+        "supplynetpy": "0.1.12",
+        "seeds": 20,
+        "hours": 20000,
+        "demand": "Poisson arrivals 1.0/h, 1 unit each, lost sales",
+        "lead_h": 48.0,
+        "policy": "(s,S)=(40,90) continuous review"
+      },
+      "metrics": {
+        "fill_rate": {
+          "aegis": 0.858,
+          "aegis_ci95": 0.0022,
+          "supplynetpy": 0.8581,
+          "supplynetpy_ci95": 0.0026
+        },
+        "avg_on_hand": {
+          "aegis": 22.3431,
+          "aegis_ci95": 0.0849,
+          "supplynetpy": 22.2704,
+          "supplynetpy_ci95": 0.0696
+        },
+        "orders": {
+          "aegis": 342.0,
+          "aegis_ci95": 0.5127,
+          "supplynetpy": 342.55,
+          "supplynetpy_ci95": 0.4817
+        }
+      },
+      "abs_diff_fill_pp": 0.01,
+      "rel_diff_on_hand": 0.0033,
+      "rel_diff_orders": 0.0016,
+      "tolerance": {
+        "fill_pp": 2.0,
+        "on_hand": 0.03,
+        "orders": 0.03
+      },
+      "pass": true
+    }
+  ],
+  "pass": true
+}

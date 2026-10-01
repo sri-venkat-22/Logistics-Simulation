@@ -1,0 +1,66 @@
+{
+  "generated": "2026-10-01T04:23:11+05:30",
+  "history": {
+    "source": "Reality Emulator seed 4042 (hidden demand drift)",
+    "from": "2026-08-15",
+    "train_to": "2026-10-15",
+    "test_days": 28,
+    "series": 36,
+    "test_window": [
+      "2026-10-15",
+      "2026-11-11"
+    ],
+    "festive_days_in_test": 14
+  },
+  "wape": {
+    "naive": 0.283,
+    "ets": 0.2445,
+    "ets_cal": 0.134,
+    "model": 0.293
+  },
+  "wape_by_family": {
+    "electronics": {
+      "ets": 0.4656,
+      "ets_cal": 0.4195,
+      "naive": 0.5624,
+      "model": 0.4351
+    },
+    "fmcg": {
+      "ets": 0.2305,
+      "ets_cal": 0.1086,
+      "naive": 0.2638,
+      "model": 0.2812
+    },
+    "vaccine": {
+      "ets": 0.1452,
+      "ets_cal": 0.1452,
+      "naive": 0.1865,
+      "model": 0.2819
+    }
+  },
+  "wape_festive_days": {
+    "ets": 0.3313,
+    "ets_cal": 0.1466,
+    "naive": 0.375,
+    "model": 0.3159
+  },
+  "policy_test": {
+    "planning_model": {
+      "fill_rate": 0.7188,
+      "otif": 0.9241,
+      "units_backordered": 275279,
+      "stockout_episodes": 16,
+      "inventory_days": 1.61,
+      "cost_lakh": 854.4
+    },
+    "ets_calendar": {
+      "fill_rate": 0.9169,
+      "otif": 0.9797,
+      "units_backordered": 79789,
+      "stockout_episodes": 4,
+      "inventory_days": 2.63,
+      "cost_lakh": 742.7
+    }
+  },
+  "wall_s": 24.1
+}

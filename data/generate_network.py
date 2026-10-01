@@ -128,6 +128,15 @@ LANE_DEFS = [
     ("PLANT_PATANCHERU", "DC_PUNE", "road"),
 ]
 
+# Phase 7: transfer-only lanes (lateral transshipment between DCs, the reverse of existing DC <-> DC corridors).
+# Appended after LANE_DEFS (L050..) and excluded from sourcing, so every replenishment path is unchanged.
+TRANSFER_DEFS = [
+    ("DC_HYD_SHAMSHABAD", "DC_BLR", "road"),
+    ("DC_DELHI", "DC_NAGPUR", "rail"),
+    ("DC_HYD_MEDCHAL", "DC_PUNE", "road"),
+    ("DC_HYD_SHAMSHABAD", "DC_HYD_MEDCHAL", "road"),
+]
+
 # mode: detour, cost ₹ per unit-km, CO2 kg per tonne-km, effective speed km/h, lognormal sigma, capacity units/day
 MODE = {
     "road": dict(detour=1.30, cost_km=0.060, co2=0.062, speed=38.0, sigma=0.25, cap=6000, fixed_h=4),
@@ -191,12 +200,14 @@ def build(refresh: bool) -> None:
              for i, t, nm, la, lo, cap, at in NODES]
 
     lanes = []
-    for k, (a, b, mode) in enumerate(LANE_DEFS, 1):
+    for k, (a, b, mode) in enumerate(LANE_DEFS + TRANSFER_DEFS, 1):
         m = MODE[mode]
         pa, pb = (by_id[a][3], by_id[a][4]), (by_id[b][3], by_id[b][4])
-        source = "haversine x %.2f" % m["detour"]
+        source = f"haversine x {m['detour']:.2f}"
         if mode == "road":
             key = f"{a}->{b}"
+            if key not in cache and f"{b}->{a}" in cache and k > len(LANE_DEFS):
+                cache[key] = cache[f"{b}->{a}"]  # transfer lane: the reverse of a cached OSRM route
             if key not in cache:
                 res = osrm_road(pa, pb)
                 if res:
@@ -219,7 +230,7 @@ def build(refresh: bool) -> None:
             "capacity": m["cap"], "co2_per_tkm": m["co2"],
             "lt_mu": round(mu, 4), "lt_sigma": sigma, "lt_mean_h": round(mean_h, 1),
             "lt_p50_h": round(math.exp(mu), 1), "lt_p90_h": round(math.exp(mu + 1.2816 * sigma), 1),
-            "status": "ok",
+            "status": "ok", **({"transfer_only": True} if k > len(LANE_DEFS) else {}),
         })
     OSRM_CACHE.write_text(json.dumps(dict(sorted(cache.items())), indent=1) + "\n")
 
@@ -244,7 +255,8 @@ def build_sourcing(nodes: list[dict], lanes: list[dict]) -> dict:
     nid = {n["id"]: n for n in nodes}
     G = nx.MultiDiGraph()
     for l in lanes:
-        G.add_edge(l["from_id"], l["to_id"], key=l["id"], w=l["lt_mean_h"])
+        if not l.get("transfer_only"):
+            G.add_edge(l["from_id"], l["to_id"], key=l["id"], w=l["lt_mean_h"])
     replenishment = []
     for dc in (n for n in nodes if n["type"] == "dc"):
         for sku in SKUS:

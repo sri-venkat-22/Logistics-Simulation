@@ -6,5 +6,36 @@ requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
-markers = ["slow: long-running benchmarks (select with -m slow)"]
+addopts = "-q -m 'not slow'"
+markers = ["slow: long-running benchmarks (run with: pytest -m slow)"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`:DeprecationWarning"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py311"
+extend-exclude = ["apps", "tools", "sim/micro/hyderabad", "data/dataco"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "S"]
+# E501: long lines are the house style (no formatter is enforced); E741: `l` for a lane; E731: a few intentional one-line lambdas (marked); B008: FastAPI Depends()
+# defaults; S101: asserts in tests / invariant checks; S311: simulation RNG is not cryptographic by design.
+ignore = ["E501", "E741", "E731", "B008", "B905", "S101", "S311", "UP007", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S105", "S106", "S108", "B017"]
+"services/api/app/db/timescale.py" = ["S608"]   # DDL identifiers from a module constant (can't be bind parameters)
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "silent"
+check_untyped_defs = false
+warn_unused_ignores = false
+files = ["services/api/app", "sim/optimize", "ml"]
+
+# The Phase 4 service modules pass loosely typed JSON / Redis state around (dicts that may be None until a job
+# exists); they are type-checked without strict Optional handling. New Phase 7-8 modules get the full check.
+[[tool.mypy.overrides]]
+module = ["services.api.app.pipeline", "services.api.app.ingest", "services.api.app.scenarios", "services.api.app.ws",
+          "services.api.app.live_state", "services.api.app.db.store", "services.api.app.routes", "services.api.app.trust_bench"]
+strict_optional = false

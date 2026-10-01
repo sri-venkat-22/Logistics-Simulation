@@ -106,12 +106,14 @@ await mdToPdf(browser, `${DOCS}/roadmap/ROADMAP.md`, `${DOCS}/roadmap/ROADMAP.pd
     <div class="tag">Phases 2–11 · Day 1 = 1 Oct 2026</div>`,
 });
 
-// research slide → PNG + PDF (16:9)
+// slides → PNG + PDF (16:9): the title slide (live URL) first, then the research slide
 const page = await browser.newPage();
 await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
-await page.goto(pathToFileURL(`${DOCS}/pitch/research-slide.html`).href, { waitUntil: "networkidle0" });
-await page.evaluate(() => document.fonts.ready);
-await page.screenshot({ path: `${DOCS}/pitch/research-slide.png` });
-await page.pdf({ path: `${DOCS}/pitch/research-slide.pdf`, width: "1920px", height: "1080px", printBackground: true, pageRanges: "1" });
-console.log("  wrote docs/pitch/research-slide.{png,pdf}");
+for (const slide of ["title-slide", "research-slide"]) {
+  await page.goto(pathToFileURL(`${DOCS}/pitch/${slide}.html`).href, { waitUntil: "networkidle0" });
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: `${DOCS}/pitch/${slide}.png` });
+  await page.pdf({ path: `${DOCS}/pitch/${slide}.pdf`, width: "1920px", height: "1080px", printBackground: true, pageRanges: "1" });
+  console.log(`  wrote docs/pitch/${slide}.{png,pdf}`);
+}
 await browser.close();

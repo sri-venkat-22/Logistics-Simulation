@@ -11,3 +11,11 @@ docs/**/.print.html
 .pytest_cache/
 data/dataco/*.csv
 sim/micro/hyderabad/osm/
+data/benchmark/telemetry.jsonl.gz
+.env
+.env.prod
+.idea/
+coverage.xml
+.coverage
+.env.tunnel
+.tunnel-logs/

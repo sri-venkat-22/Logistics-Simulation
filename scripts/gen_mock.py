@@ -118,7 +118,7 @@ else:
         (la1, lo1), (la2, lo2) = HUBS[a], HUBS[b]
         url = (f"https://router.project-osrm.org/route/v1/driving/{lo1},{la1};{lo2},{la2}"
                "?overview=full&geometries=geojson")
-        with urllib.request.urlopen(url, timeout=20) as r:
+        with urllib.request.urlopen(url, timeout=20) as r:  # noqa: S310
             res = json.load(r)["routes"][0]
         coords = [[round(x, 5), round(y, 5)] for x, y in res["geometry"]["coordinates"]][::3]
         routes.append({"from": a, "to": b, "distance_m": res["distance"], "duration_s": res["duration"],
@@ -134,7 +134,7 @@ else:
     (wa1, wo1), (wa2, wo2) = HUBS["Uppal"], HUBS["LB Nagar"]
     url = (f"https://router.project-osrm.org/route/v1/driving/{lo1},{la1};{wo1},{wa1};{wo2},{wa2};{lo2},{la2}"
            "?overview=full&geometries=geojson")
-    with urllib.request.urlopen(url, timeout=20) as r:
+    with urllib.request.urlopen(url, timeout=20) as r:  # noqa: S310 - fixed https OSRM URL
         res = json.load(r)["routes"][0]
     detour = {"from": "Medchal DC", "to": "Shamshabad DC", "distance_m": res["distance"], "duration_s": res["duration"],
               "path": [[round(x, 5), round(y, 5)] for x, y in res["geometry"]["coordinates"]][::3]}
@@ -280,7 +280,7 @@ dump("control", {
 LAYERS = ["Schema", "Authenticity", "Temporal", "Physics", "Map-match", "Kalman", "Twin oracle", "Feed anomaly", "Reputation"]
 layer_counts = [1843, 212, 604, 97, 41, 63, 18, 129, 22]
 sources = []
-for i, (sid, typ) in enumerate([("gps-fleet-hyd", "gps"), ("gps-fleet-south", "gps"), ("gps-fleet-west", "gps"),
+for _i, (sid, typ) in enumerate([("gps-fleet-hyd", "gps"), ("gps-fleet-south", "gps"), ("gps-fleet-west", "gps"),
                                   ("wms-medchal", "inventory"), ("wms-shamshabad", "inventory"), ("wms-blr", "inventory"),
                                   ("asn-sup-chennai-auto", "supplier"), ("asn-patancheru", "supplier"), ("asn-shenzhen", "supplier"),
                                   ("port-chennai", "port"), ("port-vizag", "port"), ("open-meteo", "weather")]):

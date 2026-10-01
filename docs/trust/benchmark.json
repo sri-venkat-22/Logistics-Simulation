@@ -1,0 +1,474 @@
+{
+  "benchmark": "AEGIS red-team telemetry benchmark",
+  "files": {
+    "telemetry.jsonl.gz": "d6e3cbcb6991ee4bf59903662a1a99148eeebe222bc262b74f3bb2ac995e827a",
+    "labels.jsonl": "c1b8fb6c63f257ac2082ef7283da7bd27e45ad82118f45fbf70a8bf69f31907a",
+    "truth.json": "d53d20f9f0fa800132ea15a6169324dbd4642c6d398fe8b4fff60728bc9a4232"
+  },
+  "window": [
+    "2026-10-20T00:00:00.000+05:30",
+    "2026-10-21T00:00:00.000+05:30"
+  ],
+  "messages": 218770,
+  "setup_s": 1.1,
+  "run_s": 4.8,
+  "throughput_msgs_s": 45849,
+  "message_level": {
+    "tp": 9080,
+    "fp": 389,
+    "fn": 3759,
+    "tn": 205542,
+    "precision": 0.9589,
+    "recall": 0.7072,
+    "f1": 0.8141,
+    "false_positive_rate": 0.001889
+  },
+  "attack_level": {
+    "attacks": 561,
+    "detected": 536,
+    "recall": 0.9554
+  },
+  "by_type": {
+    "blackout": {
+      "attacks": 49,
+      "detected": 47,
+      "msgs": 248,
+      "msgs_caught": 167,
+      "expected_layer_hits": 0,
+      "caught_by": {},
+      "attack_recall": 0.9592,
+      "msg_recall": 0.6734,
+      "ttd_p50_s": 39.999,
+      "ttd_max_s": 39.999
+    },
+    "cascade_failure": {
+      "attacks": 19,
+      "detected": 8,
+      "msgs": 0,
+      "msgs_caught": 0,
+      "expected_layer_hits": 0,
+      "caught_by": {},
+      "attack_recall": 0.4211,
+      "msg_recall": null,
+      "ttd_p50_s": 12559.0,
+      "ttd_max_s": 47210.0
+    },
+    "duplicate": {
+      "attacks": 72,
+      "detected": 72,
+      "msgs": 359,
+      "msgs_caught": 359,
+      "expected_layer_hits": 359,
+      "caught_by": {
+        "L3:DUPLICATE_ID": 359
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    },
+    "gps_drift": {
+      "attacks": 72,
+      "detected": 60,
+      "msgs": 9924,
+      "msgs_caught": 6165,
+      "expected_layer_hits": 6165,
+      "caught_by": {
+        "L6:KALMAN_GATE": 6165
+      },
+      "attack_recall": 0.8333,
+      "msg_recall": 0.6212,
+      "ttd_p50_s": 20.0,
+      "ttd_max_s": 200.0
+    },
+    "gps_teleport": {
+      "attacks": 52,
+      "detected": 52,
+      "msgs": 153,
+      "msgs_caught": 153,
+      "expected_layer_hits": 153,
+      "caught_by": {
+        "L4:PHYSICS_TELEPORT": 153
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    },
+    "inflated_asn": {
+      "attacks": 10,
+      "detected": 10,
+      "msgs": 10,
+      "msgs_caught": 10,
+      "expected_layer_hits": 10,
+      "caught_by": {
+        "L8:ASN_OUTLIER": 10
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    },
+    "missing_fields": {
+      "attacks": 82,
+      "detected": 82,
+      "msgs": 483,
+      "msgs_caught": 483,
+      "expected_layer_hits": 483,
+      "caught_by": {
+        "L1:SCHEMA_MISSING": 483
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    },
+    "nan_negative": {
+      "attacks": 76,
+      "detected": 76,
+      "msgs": 420,
+      "msgs_caught": 420,
+      "expected_layer_hits": 348,
+      "caught_by": {
+        "L1:SCHEMA_RANGE": 348,
+        "L4:PHYSICS_TELEPORT": 60,
+        "L1:SCHEMA_TYPE": 12
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    },
+    "replay": {
+      "attacks": 58,
+      "detected": 58,
+      "msgs": 1065,
+      "msgs_caught": 1065,
+      "expected_layer_hits": 1051,
+      "caught_by": {
+        "L3:REPLAY_NONCE": 1051,
+        "L3:DUPLICATE_ID": 14
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    },
+    "stale_timestamp": {
+      "attacks": 71,
+      "detected": 71,
+      "msgs": 425,
+      "msgs_caught": 425,
+      "expected_layer_hits": 425,
+      "caught_by": {
+        "L3:STALE_TS": 425
+      },
+      "attack_recall": 1.0,
+      "msg_recall": 1.0,
+      "ttd_p50_s": 0.0,
+      "ttd_max_s": 0.0
+    }
+  },
+  "by_code": {
+    "L6:KALMAN_GATE": 6530,
+    "L3:REPLAY_NONCE": 1051,
+    "L1:SCHEMA_MISSING": 483,
+    "L3:STALE_TS": 425,
+    "L3:DUPLICATE_ID": 373,
+    "L1:SCHEMA_RANGE": 348,
+    "L4:PHYSICS_TELEPORT": 237,
+    "L1:SCHEMA_TYPE": 12,
+    "L8:ASN_OUTLIER": 10
+  },
+  "false_positives_by_code": {
+    "L6:KALMAN_GATE": 365,
+    "L4:PHYSICS_TELEPORT": 24
+  },
+  "false_positive_examples": [
+    {
+      "msg_id": "e343e062b5e2a8c7dbc4",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:04.999+05:30"
+    },
+    {
+      "msg_id": "65fe9c400ebb47e0301d",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:09.999+05:30"
+    },
+    {
+      "msg_id": "e510288aea806b14ffb7",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:14.999+05:30"
+    },
+    {
+      "msg_id": "0b2f42dd79426c69b7b6",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:19.999+05:30"
+    },
+    {
+      "msg_id": "b8ec4fae247b8264caef",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:24.999+05:30"
+    },
+    {
+      "msg_id": "9f914b935c017f490931",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:29.999+05:30"
+    },
+    {
+      "msg_id": "bad7af11ca098a0b7354",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:34.999+05:30"
+    },
+    {
+      "msg_id": "5944be1c29f08c77d68f",
+      "source": "gps:TRK-SH000221",
+      "code": "PHYSICS_TELEPORT",
+      "layer": "L4",
+      "ts": "2026-10-20T01:37:39.999+05:30"
+    },
+    {
+      "msg_id": "7667daa6f8e8f2e998b3",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:37:49.999+05:30"
+    },
+    {
+      "msg_id": "58616fd0cab4c6b84544",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:37:54.999+05:30"
+    },
+    {
+      "msg_id": "634918e0183a5ab83f72",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:37:59.999+05:30"
+    },
+    {
+      "msg_id": "fcef137590032a2d988d",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:04.999+05:30"
+    },
+    {
+      "msg_id": "8cae0fdd171859b750bb",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:09.999+05:30"
+    },
+    {
+      "msg_id": "6bc7544848608bf6ce68",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:14.999+05:30"
+    },
+    {
+      "msg_id": "c4d4a67c90dfd959a9e6",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:19.999+05:30"
+    },
+    {
+      "msg_id": "c9f858464e9132a971b0",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:24.999+05:30"
+    },
+    {
+      "msg_id": "1f6ceffba56e8ddd369b",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:29.999+05:30"
+    },
+    {
+      "msg_id": "4ed98552fbed0b3bdfca",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:34.999+05:30"
+    },
+    {
+      "msg_id": "b58a51dcf3b08050875b",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:39.999+05:30"
+    },
+    {
+      "msg_id": "fc1267fdff61062ebed5",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:44.999+05:30"
+    },
+    {
+      "msg_id": "ed84d4210f186a528a25",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:49.999+05:30"
+    },
+    {
+      "msg_id": "f80d0f8d8c877cb7103b",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:54.999+05:30"
+    },
+    {
+      "msg_id": "f3d5d6e75b15abd6c53e",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:38:59.999+05:30"
+    },
+    {
+      "msg_id": "96efca792f1b633e01d4",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:39:04.999+05:30"
+    },
+    {
+      "msg_id": "0012e1ecd36246b35231",
+      "source": "gps:TRK-SH000221",
+      "code": "KALMAN_GATE",
+      "layer": "L6",
+      "ts": "2026-10-20T01:39:09.999+05:30"
+    }
+  ],
+  "divergences": {
+    "total": 6,
+    "on_attacked_nodes": 6,
+    "examples": [
+      {
+        "node": "PORT_JNPT",
+        "what": "status",
+        "observed": "closed",
+        "twin": "up",
+        "ts": "2026-10-20T08:00:00+05:30"
+      },
+      {
+        "node": "PORT_MUNDRA",
+        "what": "status",
+        "observed": "closed",
+        "twin": "up",
+        "ts": "2026-10-20T12:00:00+05:30"
+      },
+      {
+        "node": "PORT_KOLKATA",
+        "what": "status",
+        "observed": "closed",
+        "twin": "up",
+        "ts": "2026-10-20T12:00:00+05:30"
+      },
+      {
+        "node": "PORT_CHENNAI",
+        "what": "status",
+        "observed": "closed",
+        "twin": "up",
+        "ts": "2026-10-20T13:00:00+05:30"
+      },
+      {
+        "node": "DC_BLR",
+        "what": "outbound deliveries",
+        "observed": 0,
+        "twin": 5,
+        "ts": "2026-10-20T21:52:19+05:30"
+      },
+      {
+        "node": "PORT_VIZAG",
+        "what": "status",
+        "observed": "closed",
+        "twin": "up",
+        "ts": "2026-10-20T23:00:00+05:30"
+      }
+    ]
+  },
+  "reputation_lowest": [
+    {
+      "source": "port:PORT_JNPT",
+      "trust": 0.317,
+      "good": 0.0,
+      "bad": 1.2
+    },
+    {
+      "source": "asn:PLANT_PATANCHERU",
+      "trust": 0.331,
+      "good": 0.0,
+      "bad": 1.0
+    },
+    {
+      "source": "asn:SUP_AHMEDABAD_TEX",
+      "trust": 0.333,
+      "good": 0.0,
+      "bad": 1.0
+    },
+    {
+      "source": "port:PORT_VIZAG",
+      "trust": 0.634,
+      "good": 1.0,
+      "bad": 0.2
+    },
+    {
+      "source": "port:PORT_KOLKATA",
+      "trust": 0.634,
+      "good": 1.0,
+      "bad": 0.2
+    },
+    {
+      "source": "port:PORT_MUNDRA",
+      "trust": 0.667,
+      "good": 1.0,
+      "bad": 0.0
+    },
+    {
+      "source": "port:PORT_CHENNAI",
+      "trust": 0.676,
+      "good": 1.1,
+      "bad": 0.0
+    },
+    {
+      "source": "wms:DC_HYD_MEDCHAL",
+      "trust": 0.859,
+      "good": 5.1,
+      "bad": 0.0
+    },
+    {
+      "source": "wms:DC_NAGPUR",
+      "trust": 0.859,
+      "good": 5.1,
+      "bad": 0.0
+    },
+    {
+      "source": "wms:DC_BLR",
+      "trust": 0.893,
+      "good": 7.6,
+      "bad": 0.0
+    }
+  ]
+}

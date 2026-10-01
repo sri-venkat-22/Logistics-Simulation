@@ -1,0 +1,46 @@
+# AEGIS edge (Phase 8): automatic HTTPS (Let's Encrypt) for AEGIS_DOMAIN, the SPA, and the API behind one origin.
+#   AEGIS_DOMAIN=aegis.example.tech   ACME_EMAIL=ops@example.tech
+# Behind a TLS-terminating tunnel (scripts/live_tunnel.sh) AEGIS_DOMAIN=:8090 serves plain HTTP locally, with
+# AEGIS_API=localhost:8000 and AEGIS_WEB_ROOT=apps/web/dist.
+{
+	email {$ACME_EMAIL:ops@example.tech}
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+{$AEGIS_DOMAIN:localhost} {
+	encode zstd gzip
+
+	# API, WebSockets, OpenAPI docs and probes -> the API container
+	@api path /api/* /ws/* /docs /docs/* /openapi.json /healthz /readyz
+	handle @api {
+		reverse_proxy {$AEGIS_API:api:8000} {
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+	# Prometheus metrics stay on the internal network
+	handle /metrics {
+		respond 404
+	}
+
+	# the single-page app (hash routing, so every path is index.html)
+	handle {
+		root * {$AEGIS_WEB_ROOT:/srv/web}
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy no-referrer
+		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		# the SPA: self + the basemap tile / style / glyph hosts; MapLibre needs blob: workers and WebGL
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://tiles.openfreemap.org; font-src 'self' data:; connect-src 'self' wss://{host} https://basemaps.cartocdn.com https://*.basemaps.cartocdn.com https://tiles.basemaps.cartocdn.com https://tiles.openfreemap.org; worker-src 'self' blob:; child-src blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+		-Server
+	}
+}

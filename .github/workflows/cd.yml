@@ -1,0 +1,108 @@
+# CD (Phase 8): on a push to main (after CI passes on it), build and push the API and web images to GHCR, then deploy.
+#   backend + edge: SSH to the VM and `docker compose -f docker-compose.prod.yml pull && up -d`
+#   frontend (optional, alternative host): Vercel, when VERCEL_TOKEN is configured
+# Repository secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (and optionally DEPLOY_PATH, VERCEL_TOKEN,
+# VERCEL_ORG_ID, VERCEL_PROJECT_ID). The deploy jobs skip themselves until the secrets exist.
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ghcr.io/${{ github.repository_owner }}/aegis-api
+  WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/aegis-web
+
+jobs:
+  images:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with: {ref: "${{ github.event.workflow_run.head_sha || github.sha }}"}
+      - id: meta
+        run: echo "tag=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with: {registry: "${{ env.REGISTRY }}", username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/api.Dockerfile
+          push: true
+          tags: "${{ env.API_IMAGE }}:latest,${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: infra/docker/web.Dockerfile
+          push: true
+          tags: "${{ env.WEB_IMAGE }}:latest,${{ env.WEB_IMAGE }}:${{ steps.meta.outputs.tag }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-vm:
+    needs: images
+    runs-on: ubuntu-24.04
+    environment: production
+    env:
+      HAS_SECRETS: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_SSH_KEY != '' }}
+    steps:
+      - if: env.HAS_SECRETS != 'true'
+        run: echo "::notice::DEPLOY_HOST / DEPLOY_SSH_KEY not configured - skipping the VM deploy"
+      - if: env.HAS_SECRETS == 'true'
+        uses: actions/checkout@v7
+      - name: Copy the compose file
+        if: env.HAS_SECRETS == 'true'
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: docker-compose.prod.yml
+          target: ${{ secrets.DEPLOY_PATH || '/opt/aegis' }}
+      - name: Pull and restart
+        if: env.HAS_SECRETS == 'true'
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH || '/opt/aegis' }}
+            export AEGIS_API_IMAGE=${{ env.API_IMAGE }}:${{ needs.images.outputs.tag }}
+            export AEGIS_WEB_IMAGE=${{ env.WEB_IMAGE }}:${{ needs.images.outputs.tag }}
+            docker compose -f docker-compose.prod.yml --env-file .env.prod pull
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
+            for i in $(seq 1 30); do curl -fsS "https://$(grep ^AEGIS_DOMAIN= .env.prod | cut -d= -f2)/readyz" && exit 0; sleep 5; done
+            echo "the API did not become ready" >&2; exit 1
+
+  deploy-vercel:
+    needs: images
+    runs-on: ubuntu-24.04
+    env:
+      HAS_SECRETS: ${{ secrets.VERCEL_TOKEN != '' }}
+    steps:
+      - if: env.HAS_SECRETS != 'true'
+        run: echo "::notice::VERCEL_TOKEN not configured - skipping the Vercel deploy"
+      - if: env.HAS_SECRETS == 'true'
+        uses: actions/checkout@v7
+      - if: env.HAS_SECRETS == 'true'
+        working-directory: apps/web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_API_URL: ${{ vars.PUBLIC_API_URL }}
+        run: npx vercel@latest deploy --prod --yes --token "${{ secrets.VERCEL_TOKEN }}"

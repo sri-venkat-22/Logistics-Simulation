@@ -13,6 +13,7 @@ import { hyderabad, type Route } from "../lib/data";
 import { normalisedTimestamps, pointAt, rng, type LonLat } from "../lib/geo";
 import { useAegis } from "../lib/store";
 import { OFM_DARK, VIEW } from "../lib/theme";
+import type { Map as MaplibreMap } from "maplibre-gl";
 
 const LOOP = 3600;        // sim-seconds per loop
 const SPEEDUP = 60;       // 1 wall-second = 1 sim-minute (demo mode)
@@ -91,7 +92,7 @@ export default function CityTwin() {
   const floodClosed = closed.has(FLOOD);
   const planA = appliedPlan === "A";
 
-  const onLoad = (e: { target: maplibregl.Map }) => {
+  const onLoad = (e: { target: MaplibreMap }) => {
     const m = e.target;
     if (m.getLayer("aegis-buildings-3d")) return;
     const firstSymbol = m.getStyle().layers.find((l) => l.type === "symbol")?.id;

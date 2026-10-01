@@ -1,0 +1,51 @@
+{
+  "clean": 666,
+  "corrupted": 2664,
+  "detectors": {
+    "mad": {
+      "precision": 1.0,
+      "recall": 0.4992,
+      "false_positive_rate": 0.0,
+      "roc_auc": 0.6248
+    },
+    "iforest": {
+      "precision": 0.875,
+      "recall": 0.0053,
+      "false_positive_rate": 0.003,
+      "roc_auc": 0.9098
+    },
+    "l8_rule": {
+      "precision": 1.0,
+      "recall": 0.7492,
+      "false_positive_rate": 0.0,
+      "roc_auc": 0.8074
+    }
+  },
+  "by_corruption": {
+    "qty_x10": {
+      "mad": 1.0,
+      "iforest": 0.0,
+      "l8_rule": 1.0
+    },
+    "qty_x3": {
+      "mad": 0.997,
+      "iforest": 0.0,
+      "l8_rule": 0.997
+    },
+    "qty_x0.2": {
+      "mad": 0.0,
+      "iforest": 0.021,
+      "l8_rule": 0.0
+    },
+    "eta_before_ship": {
+      "mad": 0.0,
+      "iforest": 0.0,
+      "l8_rule": 1.0
+    }
+  },
+  "mad_stats": {
+    "median_log_qty_per_truck": -0.0349,
+    "robust_sigma": 0.05,
+    "z_max": 6.0
+  }
+}

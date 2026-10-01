@@ -29,7 +29,8 @@ import re
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -145,7 +146,7 @@ class Scenario(BaseModel):
         return v
 
     @model_validator(mode="after")
-    def _typed_params(self) -> "Scenario":
+    def _typed_params(self) -> Scenario:
         model = PARAMS_MODEL[self.type]
         self.params = model.model_validate(self.params).model_dump()  # fills defaults, rejects unknown keys
         return self
@@ -204,7 +205,7 @@ class Scenario(BaseModel):
                 raise ValueError(f"divert_to {node!r} is not a port")
 
     @classmethod
-    def load(cls, path: str | Path) -> "Scenario":
+    def load(cls, path: str | Path) -> Scenario:
         return cls.model_validate_json(Path(path).read_text())
 
 
