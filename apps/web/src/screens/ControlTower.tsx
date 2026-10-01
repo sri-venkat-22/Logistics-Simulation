@@ -280,8 +280,8 @@ function LiveTower() {
 
   if (route && route.nodes.length > 0) {
     const geoList = route.laneIds.map(id => laneGeo.find(g => g.lane.id === id)).filter(Boolean) as typeof laneGeo;
-    const { PathLayer, ScatterplotLayer, TextLayer } = require("@deck.gl/layers");
-    const { ScenegraphLayer } = require("@deck.gl/mesh-layers");
+    // const { PathLayer, ScatterplotLayer, TextLayer } = require("@deck.gl/layers");
+    // const { ScenegraphLayer } = require("@deck.gl/mesh-layers");
     
     layerList.push(new ScatterplotLayer({
       id: "route-nodes", data: route.nodes, getPosition: (d: any) => [d.lon, d.lat], getRadius: 8, radiusUnits: "pixels", getFillColor: [34, 211, 238, 255], stroked: true, getLineColor: [255, 255, 255, 255], lineWidthMinPixels: 2, parameters: { depthTest: false }
@@ -321,8 +321,8 @@ function LiveTower() {
       truckAngle = Math.atan2(dx, dy) * 180 / Math.PI;
     }
 
-    const { TextLayer } = require("@deck.gl/layers");
-    const { ScenegraphLayer } = require("@deck.gl/mesh-layers");
+    // const { TextLayer } = require("@deck.gl/layers");
+    // const { ScenegraphLayer } = require("@deck.gl/mesh-layers");
 
     layerList.push(new ScenegraphLayer({
       id: "active-transport-3d", data: [truckPos], scenegraph: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMilkTruck/glTF-Binary/CesiumMilkTruck.glb", getPosition: (d: any) => d, getOrientation: [0, -truckAngle, 90], sizeScale: 15000, _lighting: "pbr", parameters: { depthTest: false }
