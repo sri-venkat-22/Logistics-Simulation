@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import { Layers, X, ArrowDownLeft, ArrowUpRight, Clock3, History, Eye, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import type { PickingInfo } from "@deck.gl/core";
-import { PathLayer } from "@deck.gl/layers";
+// import { PathLayer } from "@deck.gl/layers";
 import type { MapRef } from "react-map-gl/maplibre";
 import { DeckMap, useAnimationClock, tooltipStyle } from "../components/DeckMap";
 import { Badge, Bar, Button, Dot, Eyebrow, Glass, KpiCard } from "../components/ui";
@@ -256,7 +256,7 @@ function LiveTower() {
   }, []);
   const now = performance.now() / 1000;
   const [, setRealRoadsLoaded] = useState(false);
-  
+
   useEffect(() => {
     let mounted = true;
     async function loadRoads() {
@@ -272,11 +272,11 @@ function LiveTower() {
             const coords = data.routes[0].geometry.coordinates;
             g.path = coords.map((c: any) => [c[0], c[1], 0]);
             g.ts = normalisedTimestamps(g.path);
-            
+
             for (const p of particles) {
               if (p.laneId === g.lane.id) {
                 p.path = g.path;
-                p.timestamps = g.ts.map(t => p.timestamps[0] + t * (p.timestamps[p.timestamps.length-1] - p.timestamps[0]));
+                p.timestamps = g.ts.map(t => p.timestamps[0] + t * (p.timestamps[p.timestamps.length - 1] - p.timestamps[0]));
               }
             }
           }
@@ -293,8 +293,10 @@ function LiveTower() {
 
   const [vs, setVs] = useState<any>(VIEW.INDIA);
 
-  const layerList = network ? liveLayers({ t: now, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports, layers,
-    selectedNode, version: dataVersion, zoom }) : [];
+  const layerList = network ? liveLayers({
+    t: now, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports, layers,
+    selectedNode, version: dataVersion, zoom
+  }) : [];
 
 
   return (
