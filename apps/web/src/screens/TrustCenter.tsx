@@ -12,6 +12,8 @@ import { trust, type QEntry } from "../lib/data";
 import { rng } from "../lib/geo";
 import { useAegis } from "../lib/store";
 import { C, axis, chartBase } from "../lib/theme";
+import { useLive } from "../lib/live";
+import TrustCenterLive from "./TrustCenterLive";
 
 const ICONS: Record<string, LucideIcon> = { "map-pin-off": MapPinOff, "move-diagonal": MoveDiagonal, "package-x": PackageX, repeat: Repeat, "file-warning": FileWarning, "wifi-off": WifiOff, "git-fork": GitFork };
 
@@ -42,7 +44,7 @@ function stamp() {
   return d.toLocaleTimeString("en-IN", { hour12: false, timeZone: "Asia/Kolkata" });
 }
 
-export default function TrustCenter() {
+function TrustCenterMock() {
   const t = useAnimationClock();
   const { quarantine, pushQuarantine, activeAttacks, triggerAttack, clearAttack, detected } = useAegis();
   const [blackoutAt, setBlackoutAt] = useState<number | null>(null);
@@ -258,4 +260,10 @@ export default function TrustCenter() {
       </Glass>
     </div>
   );
+}
+
+/** The live Trust Center when the API is reachable; the Level-1 prototype otherwise. */
+export default function TrustCenter() {
+  const apiUp = useLive((s) => s.status === "live" || !!s.network);
+  return apiUp ? <TrustCenterLive /> : <TrustCenterMock />;
 }

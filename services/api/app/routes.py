@@ -1,12 +1,14 @@
 """REST: network / nodes / shipments / KPIs, trust + eval read models, chaos injection, health, metrics."""
 from __future__ import annotations
 
+import asyncio
 import json
 import time
-from typing import TYPE_CHECKING
+from functools import lru_cache
+from typing import TYPE_CHECKING, Any
 
 import orjson
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
 
@@ -23,7 +25,7 @@ router = APIRouter(prefix="/api/v1")
 ops = APIRouter(tags=["ops"])
 
 
-def ctx_of(request: Request) -> "Ctx":
+def ctx_of(request: Request) -> Ctx:
     return request.app.state.ctx
 
 
@@ -52,10 +54,40 @@ async def network(request: Request) -> dict:
     lanes = [{"id": l.id, "from_id": l.from_id, "to_id": l.to_id, "mode": l.mode, "distance_km": l.distance_km,
               "cost_per_unit": l.cost_per_unit, "capacity": l.capacity, "co2_per_tkm": l.co2_per_tkm, "lt_mu": l.lt_mu,
               "lt_sigma": l.lt_sigma, "lt_mean_h": l.lt_mean_h,
-              "live_mult": snap.get("lanes", {}).get(l.id, {}).get("live_mult", 1.0)} for l in ctx.net.lanes.values()]
+              "live_mult": snap.get("lanes", {}).get(l.id, {}).get("live_mult", 1.0),
+              "extra_mult": snap.get("lanes", {}).get(l.id, {}).get("extra_mult", 1.0)} for l in ctx.net.lanes.values()]
     skus = [{"id": s.id, "family": s.family, "name": s.name, "unit_value": s.unit_value, "cold_chain": s.cold_chain}
             for s in ctx.net.skus.values()]
     return {"nodes": nodes, "lanes": lanes, "skus": skus, "counts": {"nodes": len(nodes), "lanes": len(lanes)}}
+
+
+@lru_cache(maxsize=16)
+def _criticality(alpha: float) -> dict:
+    from sim.optimize.criticality import criticality
+    return criticality(alpha=alpha)
+
+
+@lru_cache(maxsize=1)
+def _flow_model():
+    from sim.macro.network import Network
+    from sim.optimize.criticality import FlowModel
+    return FlowModel(Network())
+
+
+@router.get("/network/criticality", tags=["network"])
+async def network_criticality(alpha: float = Query(0.25, ge=0, le=5)) -> dict:
+    """Single points of failure: betweenness, flow share, Motter-Lai cascade reach, Simchi-Levi REI -> SPOF score."""
+    return await asyncio.to_thread(_criticality, round(alpha, 3))
+
+
+@router.get("/network/cascade/{node_id}", tags=["network"])
+async def network_cascade(node_id: str, alpha: float = Query(0.25, ge=0, le=5)) -> dict:
+    """The cascade after one node fails, step by step (which nodes and lanes fail when, unserved demand share)."""
+    from sim.optimize.criticality import cascade
+    fm = _flow_model()
+    if node_id not in fm.net.nodes or fm.net.nodes[node_id].type == "zone":
+        raise HTTPException(404, "unknown node (or a demand zone)")
+    return await asyncio.to_thread(cascade, fm, node_id, round(alpha, 3))
 
 
 @router.get("/nodes/{node_id}", tags=["network"])
@@ -109,7 +141,7 @@ async def quarantine(request: Request, limit: int = 100) -> list[dict]:
 async def trust_stats(request: Request) -> dict:
     live = ctx_of(request).live
     by_layer: dict[str, int] = {}
-    for (layer, code), v in live.reject_reasons.items():
+    for (layer, _code), v in live.reject_reasons.items():
         by_layer[layer] = by_layer.get(layer, 0) + v
     return {"accepted": live.counters["ingest_accepted"], "rejected_l1": live.counters["ingest_rejected"],
             "quarantined": live.counters["quarantined"], "by_layer": by_layer,
@@ -122,6 +154,39 @@ async def trust_sources(request: Request, state: str | None = None, limit: int =
     out = [{"id": k, "kind": s["kind"], "state": s["state"], "count": s["count"],
             "last_ts": s["last_ts"].isoformat(timespec="seconds")} for k, s in live.sources.items() if state in (None, s["state"])]
     return out[:limit]
+
+
+LAYERS = [("L1", "Schema", "Pydantic v2 strict envelope + typed payload, finite numbers, ranges"),
+          ("L2", "Authenticity", "per-device HMAC-SHA256 (rotatable keys), publisher batch HMAC + nonce + timestamp window"),
+          ("L3", "Temporal", "dedupe by message id; replays behind the source's clock; stale timestamps"),
+          ("L4", "Physics", "implied speed <= 200 km/h between accepted fixes"),
+          ("L5", "Map-matching", "city fixes within ~150 m of a SUMO road edge; national fixes on a road corridor"),
+          ("L6", "State estimation", "dead-reckoning Kalman filter with learned velocity bias; chi-square innovation gate"),
+          ("L7", "Twin oracle", "planned-route corridor from ASNs; stock / port / flow divergence from the live twin"),
+          ("L8", "Feed anomaly", "MAD z-score + IsolationForest on ASNs; stock vs ASN reconciliation"),
+          ("L9", "Reputation + SLA", "Beta reputation per source (time-decayed); SLA silence -> PREDICTED")]
+
+
+@router.get("/trust/layers", tags=["trust"])
+async def trust_layers(request: Request) -> dict:
+    """The 9 layers with live reject counts, the lowest-reputation sources and recent twin divergences."""
+    ctx = ctx_of(request)
+    live = ctx.live
+    by_layer: dict[str, dict] = {}
+    for (layer, code), v in live.reject_reasons.items():
+        by_layer.setdefault(layer, {})[code] = v
+    eng = ctx.trust.engine if ctx.trust else None
+    return {"layers": [{"id": lid, "name": name, "technique": tech, "rejected": sum(by_layer.get(lid, {}).values()),
+                        "by_code": by_layer.get(lid, {})} for lid, name, tech in LAYERS],
+            "divergences": [d.__dict__ for d in list(eng.divergences)[-50:]][::-1] if eng else [],
+            "reputation": eng.rep.table(20) if eng else [],
+            "silent_sources": sum(1 for s in live.sources.values() if s["state"] == "silent")}
+
+
+@router.get("/trust/benchmark", tags=["trust"])
+async def trust_benchmark() -> dict:
+    """Red-team benchmark score of the full pipeline (python -m services.api.app.trust_bench)."""
+    return _read_json(ROOT / "docs" / "trust" / "benchmark.json") or {}
 
 
 # ------------------------------------------------------------------------------ eval
@@ -144,7 +209,7 @@ async def eval_resilience() -> dict:
 async def eval_pipeline(request: Request) -> dict:
     ctx = ctx_of(request)
     r = ctx.redis
-    out = {"streams": {}, "db": {"written": dict(ctx.writer.written), "errors": ctx.writer.errors,
+    out: dict[str, Any] = {"streams": {}, "db": {"written": dict(ctx.writer.written), "errors": ctx.writer.errors,
                                  "last_flush_ms": round(ctx.writer.last_flush_ms, 1), "timeseries_mode": ctx.ts_mode},
            "trust_processed": ctx.trust.processed if ctx.trust else 0,
            "twin_processed": ctx.twin_state.processed if ctx.twin_state else 0, "ws_frames": ctx.broadcaster.frames}
@@ -160,6 +225,61 @@ async def eval_pipeline(request: Request) -> dict:
     return out
 
 
+# ------------------------------------------------------------------------------ ML (Phase 7.3)
+@lru_cache(maxsize=1)
+def _eta_model():
+    from ml.eta import EtaModel
+    return EtaModel() if EtaModel.available() else None
+
+
+@router.get("/ml/metrics", tags=["ml"])
+async def ml_metrics() -> dict:
+    """ETA (twin + DataCo), demand forecast (+ the (s,S) policy test) and feed-anomaly evaluation reports."""
+    d = ROOT / "docs" / "ml"
+    return {k: _read_json(d / f"{k}.json") for k in ("eta", "forecast", "anomaly")}
+
+
+@router.get("/ml/eta", tags=["ml"])
+async def ml_eta(request: Request, lane: str, weather: float = Query(1.0, ge=0.1, le=10),
+                 at: str | None = Query(None, description="departure time (ISO); default: the live twin's clock")) -> dict:
+    """P10 / P50 / P90 transit time for a lane departure (LightGBM quantile models on reality-emulator history)."""
+    ctx = ctx_of(request)
+    if lane not in ctx.net.lanes:
+        raise HTTPException(404, "unknown lane")
+    m = _eta_model()
+    if m is None:
+        raise HTTPException(503, "ETA models not trained: python -m ml.eta")
+    from datetime import datetime
+    when = datetime.fromisoformat(at) if at else datetime.fromisoformat(ctx.twin.snapshot()["ts"])
+    cal = bool(ctx.twin and ctx.twin.twin.lanes[lane].calibration)
+    return m.predict(ctx.net, lane, when, weather, cal)
+
+
+@router.get("/ml/eta/shipments", tags=["ml"])
+async def ml_eta_shipments(request: Request, limit: int = Query(50, ge=1, le=500)) -> list[dict]:
+    """ETA bands for shipments in transit in the live twin (the current leg)."""
+    ctx = ctx_of(request)
+    m = _eta_model()
+    if m is None or ctx.twin is None:
+        return []
+    from datetime import datetime, timedelta
+    snap = ctx.twin.snapshot()
+    now = datetime.fromisoformat(snap["ts"])
+    out = []
+    for s in snap["shipments"]:
+        if s["status"] != "transit":
+            continue
+        mult = snap["lanes"].get(s["lane"], {}).get("extra_mult", 1.0)
+        p = m.predict(ctx.net, s["lane"], now, mult)
+        left = max(0.0, 1 - s["progress"])
+        out.append({"shipment": s["id"], "sku": s["sku"], "lane": s["lane"], "from": s["from"], "to": s["to"], "progress": s["progress"],
+                    "twin_eta": (now + timedelta(hours=max(0.0, s["eta_leg_h"] - snap["t_h"]))).isoformat(timespec="minutes"),
+                    "p10_h": round(p["p10_h"] * left, 2), "p50_h": round(p["p50_h"] * left, 2), "p90_h": round(p["p90_h"] * left, 2)})
+        if len(out) >= limit:
+            break
+    return out
+
+
 # ------------------------------------------------------------------------------ chaos
 class ChaosRequest(BaseModel):
     type: str = Field(description=f"one of {', '.join(ATTACK_TYPES)}")
@@ -169,7 +289,7 @@ class ChaosRequest(BaseModel):
 
 
 @router.post("/chaos/inject", status_code=202, tags=["chaos"])
-async def chaos_inject(body: ChaosRequest, request: Request, who: Identity = Depends(require("admin"))) -> dict:
+async def chaos_inject(body: ChaosRequest, request: Request, who: Identity = Depends(require("security"))) -> dict:
     if body.type not in ATTACK_TYPES:
         raise HTTPException(422, f"unknown attack type; use one of {ATTACK_TYPES}")
     ctx = ctx_of(request)

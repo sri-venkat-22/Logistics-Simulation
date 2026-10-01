@@ -41,6 +41,7 @@ class Lane:
     lt_sigma: float
     lt_mean_h: float
     lt_p90_h: float
+    transfer_only: bool = False  # lateral DC -> DC transshipment lane (never on a sourcing path)
 
 
 @dataclass(frozen=True)
@@ -72,7 +73,7 @@ class Network:
                     json.loads((data_dir / "skus.json").read_text()), json.loads((data_dir / "sourcing.json").read_text()))
 
     @classmethod
-    def from_raw(cls, nodes: list[dict], lanes: list[dict], skus: list[dict], sourcing: dict) -> "Network":
+    def from_raw(cls, nodes: list[dict], lanes: list[dict], skus: list[dict], sourcing: dict) -> Network:
         """Build from in-memory dicts in the data/ file formats (toy networks for engine verification)."""
         net = cls.__new__(cls)
         net._build(nodes, lanes, skus, sourcing)
@@ -83,7 +84,7 @@ class Network:
                       for n in raw_nodes}
         self.lanes = {l["id"]: Lane(l["id"], l["from_id"], l["to_id"], l["mode"], l["distance_km"], l["cost_per_unit_km"],
                                     l["cost_per_unit"], l["capacity"], l["co2_per_tkm"], l["lt_mu"], l["lt_sigma"],
-                                    l["lt_mean_h"], l["lt_p90_h"]) for l in raw_lanes}
+                                    l["lt_mean_h"], l["lt_p90_h"], l.get("transfer_only", False)) for l in raw_lanes}
         self.skus = {s["id"]: Sku(s["id"], s["family"], s["name"], s["unit_value"], s["unit_weight_kg"], s["cold_chain"],
                                   s["sea_imported"], s["base_demand_per_million_day"], s["holding_rate_yr"],
                                   s["stockout_penalty"], s.get("order_cost", 0.0)) for s in raw_skus}

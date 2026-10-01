@@ -28,7 +28,7 @@ from sim.macro.disruptions import Effect
 from sim.macro.engine import Twin
 from sim.macro.entities import Shipment
 from sim.micro.build_hyderabad import BBOX
-from sim.micro.calibrate import CONSUMERS, LANE_CORRIDORS, NODE_HUB
+from sim.micro.calibrate import LANE_CORRIDORS, NODE_HUB
 from sim.micro.process import MicroProcess
 
 TRUCK_CAP = {"SKU_VAX": 400, "SKU_FMCG": 1000, "SKU_ELEC": 1500}
@@ -183,7 +183,7 @@ class CoupledTwin:
             yield env.timeout(max(0.0, t_h - pre))
             return True
         shp.trucks = vids
-        cs = self.waiting[shp.id] = CityShipment(shp.id, lane.id, set(vids), env.now)
+        self.waiting[shp.id] = CityShipment(shp.id, lane.id, set(vids), env.now)
         ev = env.event()
         twin.pending_city[shp.id] = ev
         twin.set_status(shp, "city", lane.id, city_h)

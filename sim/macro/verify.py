@@ -221,7 +221,7 @@ def _snp_toy(seed: int, hours: float, rate_h: float, lead_h: float, s: int, S: i
     dist = scm.InventoryNode(env=env, ID="D1", name="Distributor", node_type="distributor", capacity=10 * S,
                              initial_level=S, inventory_holding_cost=holding, replenishment_policy=scm.SSReplenishment,
                              policy_param={"s": s, "S": S}, product_sell_price=1.0, product_buy_price=1.0, logging=False)
-    link = scm.Link(env=env, ID="L1", source=sup, sink=dist, cost=0, lead_time=lambda: lead_h)
+    _link = scm.Link(env=env, ID="L1", source=sup, sink=dist, cost=0, lead_time=lambda: lead_h)
     dem = scm.Demand(env=env, ID="C1", name="Customers", order_arrival_model=lambda: rnd.expovariate(rate_h),
                      order_quantity_model=lambda: 1, demand_node=dist, logging=False)
     env.run(until=hours)

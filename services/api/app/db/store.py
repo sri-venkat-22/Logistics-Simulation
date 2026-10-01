@@ -5,7 +5,7 @@ import logging
 import threading
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 import orjson
 from sqlalchemy import create_engine, text
@@ -45,7 +45,12 @@ def seed_master_data(engine: Engine, net: Network) -> None:
                       {"id": s.id, "f": s.family, "v": s.unit_value, "p": s.cold_chain, "cc": s.cold_chain})
 
 
+RECENT_AUDIT: deque = deque(maxlen=1000)  # newest first; the audit read model when persistence is off
+
+
 def audit(engine: Engine | None, user: str, action: str, target: str | None, details: dict) -> None:
+    RECENT_AUDIT.appendleft({"ts": datetime.now(UTC).isoformat(timespec="seconds"), "user_id": user,
+                             "action": action, "target": target, "details": details})
     if engine is None:
         return
     with engine.begin() as c:
@@ -121,7 +126,7 @@ class BatchWriter:
             try:
                 raw = self.engine.raw_connection()
                 try:
-                    with raw.cursor() as cur:
+                    with raw.cursor() as cur:  # type: ignore[attr-defined]  # psycopg 3 cursor
                         with cur.copy(f"copy {table} ({', '.join(cols)}) from stdin") as cp:
                             for r in rows:
                                 cp.write_row(r)
@@ -136,4 +141,4 @@ class BatchWriter:
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)

@@ -1,5 +1,7 @@
 # AEGIS Twin — Logistics Network Digital Twin (PNT1)
 
+[![CI](https://github.com/sri-venkat-22/Logistics-Simulation/actions/workflows/ci.yml/badge.svg)](https://github.com/sri-venkat-22/Logistics-Simulation/actions/workflows/ci.yml)
+
 **New here? Start with the step-by-step [tutorial](docs/TUTORIAL.md).**
 
 > *See every shipment. Simulate every shock. Survive every attack.*
@@ -42,7 +44,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python -m sim.micro.run
 ```
 
-- **Macro twin** (SimPy): 28 real-coordinate nodes, 49 lanes (OSRM road distances, sea routes via Malacca), 3 SKU families, demand fitted from DataCo with a Diwali +60% spike. `--scenario cyclone --compare` shows the scenario next to the baseline, using common random numbers.
+- **Macro twin** (SimPy): 28 real-coordinate nodes, 49 lanes + 4 transfer-only DC↔DC lanes (Phase 7) (OSRM road distances, sea routes via Malacca), 3 SKU families, demand fitted from DataCo with a Diwali +60% spike. `--scenario cyclone --compare` shows the scenario next to the baseline, using common random numbers.
 - **Micro twin** (SUMO 1.27, libsumo): the Hyderabad western/southern belt, 10,670 edges, 12 DC/plant hubs as parkingAreas, background traffic. 500 trucks + 3,000 cars run at **71.6× real time** (`python -m sim.micro.bench`).
 - **Scenario DSL** (Pydantic v2): 7 templates in `sim/scenarios/templates/`, validated by `python -m sim.scenarios.validate`.
 - Tests: `.venv/bin/python -m pytest` (38 tests).
@@ -101,6 +103,48 @@ AEGIS_TWIN_WARMUP_H=58 .venv/bin/uvicorn services.api.app.main:app --port 8000
   - Scenario Lab v1: template → run → fan chart + KPI deltas → optimise → apply.
   - With the API down the UI falls back to the Level-1 prototype.
 - Tests: `.venv/bin/python -m pytest` (81 tests), plus `-m slow` (3).
+
+## Phase 7 — Intelligence (optimiser, criticality, ML, Copilot, 9-layer trust)
+
+Report with all measured results: [`docs/intelligence/PHASE7.md`](docs/intelligence/PHASE7.md) · trust layer: [`docs/trust/TRUST.md`](docs/trust/TRUST.md).
+
+```bash
+.venv/bin/python -m sim.optimize.report && .venv/bin/python -m sim.optimize.criticality
+```
+
+```bash
+.venv/bin/python -m ml.eta && .venv/bin/python -m ml.forecast && .venv/bin/python -m ml.anomaly
+```
+
+- **Optimiser.** Candidates come from k-shortest reroutes (NetworkX), OR-Tools min-cost-flow stock transfers, air expedite and safety-stock buffers. Each one is evaluated with Monte Carlo on common seeds, then ranked by Pareto front plus a weighted score (Scenario Lab sliders). Every plan carries an event-log explanation, and `POST /plans/{id}/apply` pushes it into the live twin. On a 21-day Chennai port closure the top plan cuts the CVaR₉₅ shortfall by **89 %**.
+- **Criticality.** Betweenness, a Motter–Lai cascade and the Simchi-Levi Risk Exposure Index rank the single points of failure. The Network Graph animates the cascade in 3-D.
+- **ML.**
+  - LightGBM ETA quantiles: twin MAE 6.76 h, P10–P90 coverage 78 %. DataCo MAE 1.03 d, late-delivery AUC 0.76.
+  - AutoETS + festival calendar demand forecast: WAPE 13.4 %. Fed into (s,S), it lifts fill from 71.9 % to 91.7 %.
+  - IsolationForest + MAD ASN anomaly detection: precision 1.0.
+- **AI Copilot** (`⌘J`): Claude Opus 5.5 or an offline planner on 8 strict tools, streamed over SSE as tool cards. `propose_apply` only proposes, and a human clicks Apply.
+- **Trust pipeline, all 9 layers**: **95.5 %** of 561 red-team attacks detected, 0.19 % false-positive rate.
+
+## Phase 8 — Security, CI/CD and cloud deployment
+
+**Security section: [`docs/security/SECURITY.md`](docs/security/SECURITY.md)** · deployment runbook: [`docs/platform/PHASE8.md`](docs/platform/PHASE8.md).
+
+- **Auth.** OAuth2 password flow → short-lived JWT access tokens (15 min) + rotating refresh tokens (7 d), argon2id password hashes, and RBAC `viewer < planner < security < admin`. Sign in from the top bar.
+
+  | Development user | Password | Can |
+  |---|---|---|
+  | `viewer` | `aegis-viewer` | Read |
+  | `planner` | `aegis-planner` | + run scenarios and apply plans |
+  | `security` | `aegis-security` | + chaos console, quarantine, key rotation, audit log |
+  | `admin` | `aegis-admin` | Everything |
+
+  These accounts are disabled in production (`AEGIS_ENV=prod`), where users come from `AEGIS_USERS`.
+- **Devices.** Per-device HMAC-SHA256 keys, timestamp + nonce replay protection (Redis `SET NX` with a TTL), and `POST /api/v1/devices/{id}/rotate` (pgcrypto-encrypted keys with a grace period).
+- **App and transport.** Caddy auto-HTTPS with HSTS + a strict CSP. Strict CORS, slowapi rate limits on Redis, request-size limits, SQLAlchemy-bound parameters only, and secrets from env / GitHub secrets. Prod refuses to start with default secrets.
+- **Audit log.** Logins, plan applies, chaos injections, key rotations and Copilot use go to `audit_log` and are shown in the Trust Center.
+- **CI** ([`ci.yml`](.github/workflows/ci.yml)): ruff, mypy, pytest with coverage, eslint, tsc, vitest, a Playwright demo smoke test, pip-audit, npm audit, Docker builds, `caddy validate` and Trivy.
+- **CD** ([`cd.yml`](.github/workflows/cd.yml)): on `main`, after a green CI run, images are pushed to GHCR. The workflow then runs `docker compose pull && up -d` over SSH on the VM (and optionally a Vercel deploy).
+- Tests: `.venv/bin/python -m pytest` (118 tests) · `cd apps/web && npm test && npx playwright test`.
 
 ## Run the prototype locally
 

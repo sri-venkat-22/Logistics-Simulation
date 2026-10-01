@@ -6,6 +6,7 @@ import { Logo } from "../components/Shell";
 import { Button, Kbd, MockChip } from "../components/ui";
 import { networkLayers } from "../lib/networkLayers";
 import { VIEW } from "../lib/theme";
+import type { Map as MaplibreMap } from "maplibre-gl";
 
 /** §6.5 screen 1 — 5 s skippable intro: globe rotates → flies to India → arcs draw in → tagline. */
 export default function Intro() {
@@ -20,7 +21,7 @@ export default function Intro() {
     return () => window.removeEventListener("keydown", skip);
   }, [navigate]);
 
-  const onLoad = (e: { target: maplibregl.Map }) => {
+  const onLoad = (e: { target: MaplibreMap }) => {
     const m = e.target;
     m.easeTo({ center: [95, 18], duration: 1600, easing: (x) => x });
     window.setTimeout(() => {

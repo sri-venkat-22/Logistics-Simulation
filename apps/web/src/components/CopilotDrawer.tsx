@@ -6,6 +6,8 @@ import { Sparkles, X, Wrench, CheckCircle2, ShieldCheck, ArrowUp, Loader2 } from
 import { copilot, scenario, type CopilotStep } from "../lib/data";
 import { useAegis } from "../lib/store";
 import { Badge, Button, Kbd } from "./ui";
+import { useLive } from "../lib/live";
+import { LiveCopilotDrawer } from "./LiveCopilot";
 
 function Markdownish({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -23,7 +25,7 @@ function Streaming({ text, onDone }: { text: string; onDone: () => void }) {
   return <Markdownish text={text.slice(0, n)} />;
 }
 
-export function CopilotDrawer() {
+function MockCopilotDrawer() {
   const { copilotOpen, setCopilotOpen, applyPlan, appliedPlan, setScenario } = useAegis();
   const navigate = useNavigate();
   const [shown, setShown] = useState(0);
@@ -134,4 +136,10 @@ export function CopilotDrawer() {
       )}
     </AnimatePresence>
   );
+}
+
+/** The live Copilot when the API is reachable; the scripted Level-1 walkthrough otherwise. */
+export function CopilotDrawer() {
+  const apiUp = useLive((s) => s.status !== "offline" || !!s.network);
+  return apiUp ? <LiveCopilotDrawer /> : <MockCopilotDrawer />;
 }

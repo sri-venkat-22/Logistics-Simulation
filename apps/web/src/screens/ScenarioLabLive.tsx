@@ -6,14 +6,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
-import { Anchor, Tornado, Waves, TrendingUp, Factory, Hand, WifiOff, Play, Sparkles, Check, Loader2, type LucideIcon } from "lucide-react";
+import { Anchor, Tornado, Waves, TrendingUp, Factory, Hand, WifiOff, Play, Sparkles, Loader2, type LucideIcon } from "lucide-react";
 import { DeckMap, useAnimationClock } from "../components/DeckMap";
 import { Chart } from "../components/Chart";
 import { Badge, Button, Eyebrow, Glass, ProgressRing, Ticker } from "../components/ui";
-import { WS_URL, applyPlan, createScenario, getScenario, getTemplates, optimizeScenario, type ScenarioStatus, type Template } from "../lib/api";
+import { useNavigate } from "react-router";
+import { Zap } from "lucide-react";
+import { wsUrl, createScenario, getScenario, getTemplates, optimizeScenario, pushDisruption, type ScenarioStatus, type Template } from "../lib/api";
 import { useLive, vehicles as liveVehicles } from "../lib/live";
 import { liveLayers } from "../lib/liveLayers";
 import { useAegis } from "../lib/store";
+import { ensureRole } from "../lib/auth";
+import { PlansPanel } from "../components/PlansPanel";
 import { C, axis, chartBase } from "../lib/theme";
 import { PolygonLayer, ScatterplotLayer } from "@deck.gl/layers";
 
@@ -37,7 +41,7 @@ function useScenarioRun() {
 
   const follow = (id: string) => {
     wsRef.current?.close();
-    const ws = new WebSocket(`${WS_URL}/ws/scenarios/${id}`);
+    const ws = new WebSocket(wsUrl(`/ws/scenarios/${id}`));
     wsRef.current = ws;
     ws.onmessage = (e) => {
       const ev = JSON.parse(e.data as string) as ScenarioStatus;
@@ -116,7 +120,9 @@ export default function ScenarioLabLive() {
   const [days, setDays] = useState(30);
   const [pair, setPair] = useState<string | null>(null);
   const [optimizing, setOptimizing] = useState(false);
-  const [applied, setApplied] = useState<string | null>(null);
+  const [pushed, setPushed] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { selectNode } = useAegis();
   const { st, base, run, load } = useScenarioRun();
 
   useEffect(() => { getTemplates().then(setTemplates).catch(() => toast.error("Cannot load scenario templates")); }, []);
@@ -138,7 +144,7 @@ export default function ScenarioLabLive() {
   useEffect(() => { if (pairs.length) setPair(pairs[0][0]); }, [pairs]);
 
   const optimize = async () => {
-    if (!st) return;
+    if (!st || !ensureRole("planner")) return;
     setOptimizing(true);
     try {
       await optimizeScenario(st.id, Math.min(100, n));
@@ -151,10 +157,30 @@ export default function ScenarioLabLive() {
     setOptimizing(false);
   };
 
+  const risk = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const [k, dp] of pairs.map(([k, dp]) => [k, dp] as [string, number])) {
+      const dc = k.split("/")[0];
+      out[dc] = Math.max(out[dc] ?? 0, dp);
+    }
+    return out;
+  }, [pairs]);
   const target = network?.nodes.find((x) => x.id === tpl?.target);
+
+  const pushLive = async () => {
+    if (!tpl) return;
+    try {
+      await pushDisruption(tpl.template);
+      setPushed(tpl.template);
+      await useLive.getState().refreshNetwork();
+      toast.success("Pushed to the live twin", { description: `${tpl.name ?? tpl.type} is now active on the Control Tower map`,
+        action: { label: "View on map", onClick: () => { selectNode(tpl.target); navigate("/"); } } });
+    } catch (e) { toast.error("Could not push", { description: String(e) }); }
+  };
   const mapLayers = network ? [
     ...liveLayers({ t: performance.now() / 1000, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports,
-      layers: { ...layers, inventory: false }, selectedNode: tpl?.target ?? null, version: dataVersion }),
+      layers: { ...layers, inventory: false }, selectedNode: tpl?.target ?? null, version: dataVersion,
+      impact: st?.impact ?? null, risk: res ? risk : undefined }),
     ...(tpl?.polygon ? [new PolygonLayer({ id: "sc-poly", data: [{ p: tpl.polygon }], getPolygon: (d: { p: [number, number][] }) => d.p,
       getFillColor: [239, 68, 68, 40], getLineColor: [239, 68, 68, 220], lineWidthMinPixels: 2, stroked: true })] : []),
     ...(target ? [new ScatterplotLayer({ id: "sc-target", data: [target], getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
@@ -196,7 +222,7 @@ export default function ScenarioLabLive() {
                 className="num mt-1 w-full rounded-md bg-white/5 border border-line px-2 py-1 text-ink" /></label>
             </div>
             <Button variant="primary" className="w-full" disabled={!!running}
-              onClick={() => { setApplied(null); run(sel, n, days).catch((e) => toast.error("Could not start", { description: String(e) })); }}>
+              onClick={() => { if (!ensureRole("planner")) return; run(sel, n, days).catch((e) => toast.error("Could not start", { description: String(e) })); }}>
               {running ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />} {running ? "Running…" : `Run ${n} simulations`}
             </Button>
           </div>
@@ -219,6 +245,17 @@ export default function ScenarioLabLive() {
                   <div className="text-[11px] text-ink-3">{st.status === "done" ? `done in ${(res?.wall_s ?? st.wall_s ?? 0).toFixed(1)} s` : "Monte Carlo replications"}</div>
                 </div>
               </div>
+              {st.impact && res && (
+                <div className="num mt-2.5 text-[11px] text-ink-3 leading-relaxed">
+                  <span className="text-bad">{Object.keys(st.impact.nodes).length} node(s)</span> · <span className="text-bad">{Object.keys(st.impact.lanes).length} lane(s)</span> disrupted ·{" "}
+                  <span className="text-warn">{Object.values(risk).filter((p) => p > 0.005).length} DC(s)</span> at added stock-out risk
+                </div>
+              )}
+              {res && (
+                <Button variant={pushed === tpl?.template ? "ghost" : "primary"} className="w-full mt-2.5" disabled={pushed === tpl?.template} onClick={pushLive}>
+                  <Zap size={13} /> {pushed === tpl?.template ? "Active in the live twin" : "Push to live twin"}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -273,24 +310,7 @@ export default function ScenarioLabLive() {
                 {res.tts[0].tts_h ? ` · TTS P50 ${(res.tts[0].tts_h.p50 / 24).toFixed(1)} d` : ""} · P(exposed) {(res.tts[0].p_exposed * 100).toFixed(0)}%
               </div>
             )}
-            {st?.plans && (
-              <div className="mt-3 space-y-1.5">
-                <Eyebrow>Ranked plans · same seeds (CRN)</Eyebrow>
-                {st.plans.map((p, i) => (
-                  <div key={p.id} className={clsx("rounded-xl border px-3 py-2 flex items-center gap-3", i === 0 ? "border-ai/50 bg-ai/8" : "border-line")}>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12.5px] text-ink truncate">{p.name}</div>
-                      <div className="num text-[10.5px] text-ink-3">fill P10 {(p.service_p10 * 100).toFixed(2)}% · ₹{p.cost_lakh.toFixed(1)} L · score {p.score.toFixed(3)}</div>
-                    </div>
-                    <Button variant={i === 0 ? "primary" : "ghost"} disabled={applied === p.id}
-                      onClick={() => applyPlan(p.id).then(() => { setApplied(p.id); toast.success(`Applied: ${p.name}`, { description: `${p.actions.length} actions pushed to the live twin` }); })
-                        .catch((e) => toast.error("Apply failed", { description: String(e) }))}>
-                      {applied === p.id ? <><Check size={13} /> Applied</> : "Apply"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            {st?.plans && st.plans.length > 0 && <PlansPanel scenarioId={st.id} initial={st.plans} />}
           </Glass>
         </div>
       </div>

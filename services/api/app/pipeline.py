@@ -3,12 +3,14 @@
     telemetry.raw  --[trust stage]-->  telemetry.clean  --[twin-state stage]-->  live state / Redis / DB
                           \\--> quarantine (reason code + layer)
 
-Trust stage (Phase 4 core of the 9-layer pipeline; Phase 7 adds map-matching, Kalman, twin oracle,
-feed anomaly and reputation):
-    L2 HMAC_INVALID     device signature (per-device key = HMAC(master, source_id))
-    L3 DUPLICATE_ID     msg_id already seen (Redis SET NX, 1 h) - catches duplicates and verbatim replays
+Trust stage (layers 2-9; layer 1 runs at the gateway, layers 5-9 live in trust_layers.py):
+    L2 HMAC_INVALID     device signature (per-device key = HMAC(master, source_id), or its rotated key)
+    L3 REPLAY_NONCE     msg_id already seen (Redis SET NX, 1 h) and older than the source's latest message
+    L3 DUPLICATE_ID     msg_id already seen, arriving in step with the source (a duplicated send)
     L3 STALE_TS         older than the source's last accepted message by > 60 s, or > 1 h behind the world clock
     L4 PHYSICS_TELEPORT GPS jump implying > 200 km/h since the vehicle's last accepted position
+    L5 OFFROAD  L6 KALMAN_GATE  L7 TWIN_ENVELOPE  L8 ASN_OUTLIER / RECON_MISMATCH  L9 LOW_REPUTATION
+    L7 divergences of observed stock / port state from the live twin are flagged and alerted, not quarantined.
 Twin-state stage: vehicles (hash veh:{id}), inventory (hash inv:{node} sku -> json), ports (hash port:{id}),
 ASNs, source last-seen; NetworkX node attributes (status, stock_<sku>); batched COPY into telemetry /
 inventory; alerts on stock below the reorder point, backorders, port status changes.
@@ -21,12 +23,13 @@ import asyncio
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import orjson
 
 from services.api.app import metrics as M
 from services.api.app.db.store import BatchWriter
+from services.api.app.trust_layers import TrustEngine
 from sim.reality.telemetry import Signer
 from sim.scenarios.dsl import haversine_km
 
@@ -54,22 +57,39 @@ def _parse_ts(s: str) -> datetime:
 class TrustStage:
     group = "trust"
 
-    def __init__(self, ctx: "Ctx", consumer: str = "trust-1"):
+    def __init__(self, ctx: Ctx, consumer: str = "trust-1"):
         self.ctx, self.consumer = ctx, consumer
         self.signer = Signer(ctx.settings.master_key)
         self.last_src: dict[str, datetime] = {}
         self.last_pos: dict[str, tuple[float, float, datetime]] = {}
         self.candidate: dict[str, tuple[float, float, datetime, int]] = {}  # rejected-but-consistent track per vehicle
         self.processed = 0
+        twin = ctx.twin
+        self.engine = TrustEngine(ctx.net, levels=twin.levels if twin else None, twin_state=twin.snapshot if twin else None,
+                                  twin_flows=twin.flow_count if twin else None, city_cells=getattr(ctx, "city_cells", None))
+
+    def verify(self, m: dict) -> bool:
+        dk = getattr(self.ctx, "device_keys", None)
+        keys = dk.valid(m.get("source_id")) if dk is not None and hasattr(dk, "valid") else None
+        if keys is not None:  # a rotated device key (plus the previous one during its grace period)
+            return any(self.signer.verify_with(m, k) for k in keys)
+        return self.signer.verify(m)
 
     def check(self, m: dict, fresh: bool) -> tuple[str, str] | None:
-        if not self.signer.verify(m):
+        v = self._check_l2_l4(m, fresh)
+        if v is not None:
+            self.engine.reject(m, v[0], self.ctx.live.world_now)
+            return v
+        return self.engine.check(m, _parse_ts(m["ts"]))
+
+    def _check_l2_l4(self, m: dict, fresh: bool) -> tuple[str, str] | None:
+        if not self.verify(m):
             return "L2", "HMAC_INVALID"
-        if not fresh:
-            return "L3", "DUPLICATE_ID"
         ts = _parse_ts(m["ts"])
         src = m["source_id"]
         last = self.last_src.get(src)
+        if not fresh:  # seen before: a replay if it's behind the source's own clock, else a duplicated send
+            return ("L3", "REPLAY_NONCE") if last is not None and ts < last - timedelta(seconds=60) else ("L3", "DUPLICATE_ID")
         world = self.ctx.live.world_now
         if (last is not None and ts < last - timedelta(seconds=60)) or (world is not None and ts < world - timedelta(hours=1)):
             return "L3", "STALE_TS"
@@ -103,10 +123,23 @@ class TrustStage:
         if m["kind"] == "gps":
             p = m["payload"]
             self.last_pos[p["vehicle_id"]] = (p["lat"], p["lon"], ts)
+        self.divergences(self.engine.accept(m, ts))
+
+    def divergences(self, divs: list) -> None:
+        for d in divs:
+            self.ctx.live.counters["divergences"] += 1
+            self.ctx.live.alert("warn", f"Twin divergence · {d.node.replace('DC_', '').replace('PORT_', '').replace('SUP_', '')}",
+                                f"L7 TWIN_ENVELOPE: observed {d.what} {d.observed} vs twin {d.twin}; reality has moved "
+                                "outside the twin's envelope", node=d.node, kind="divergence", key=f"div:{d.node}:{d.what}",
+                                min_gap_s=60)
+
+    def sweep(self) -> None:
+        if self.ctx.live.world_now is not None:
+            self.divergences(self.engine.sweep(self.ctx.live.world_now))
 
     async def step(self, block_ms: int = 200, count: int = 2000) -> int:
         r = self.ctx.redis
-        resp = await r.xreadgroup(self.group, self.consumer, {RAW: ">"}, count=count, block=block_ms)
+        resp: Any = await r.xreadgroup(self.group, self.consumer, {RAW: ">"}, count=count, block=block_ms)
         if not resp:
             return 0
         entries = resp[0][1]
@@ -116,7 +149,7 @@ class TrustStage:
             pipe.set(f"seen:{m['msg_id']}", 1, nx=True, ex=3600)
         fresh = await pipe.execute()
         pipe = r.pipeline(transaction=False)
-        for (eid, _), m, ok in zip(entries, msgs, fresh):
+        for _, m, ok in zip(entries, msgs, fresh):
             verdict = self.check(m, bool(ok))
             if verdict is None:
                 self.accept(m)
@@ -136,7 +169,7 @@ class TrustStage:
 class TwinStateStage:
     group = "twin"
 
-    def __init__(self, ctx: "Ctx", writer: BatchWriter, consumer: str = "twin-1"):
+    def __init__(self, ctx: Ctx, writer: BatchWriter, consumer: str = "twin-1"):
         self.ctx, self.writer, self.consumer = ctx, writer, consumer
         self.stock_flags: dict[tuple[str, str], str] = {}
         self.processed = 0
@@ -211,7 +244,7 @@ class TwinStateStage:
 
     async def step(self, block_ms: int = 200, count: int = 2000) -> int:
         r = self.ctx.redis
-        resp = await r.xreadgroup(self.group, self.consumer, {CLEAN: ">"}, count=count, block=block_ms)
+        resp: Any = await r.xreadgroup(self.group, self.consumer, {CLEAN: ">"}, count=count, block=block_ms)
         if not resp:
             return 0
         entries = resp[0][1]
@@ -228,8 +261,13 @@ class TwinStateStage:
 
 
 class SlaMonitor:
-    def __init__(self, ctx: "Ctx", gps_sla_s: float = 30.0, other_sla_s: float = 1800.0, drop_s: float = 600.0):
+    """Per-kind SLAs (world seconds): GPS 30 s; stock counts every 15 min -> 30 min; port status hourly -> 2 h;
+    ASNs are event-driven (no SLA). A source silent past its SLA is `silent`, and `gone` after drop_s beyond it."""
+
+    def __init__(self, ctx: Ctx, gps_sla_s: float = 30.0, other_sla_s: float = 1800.0, drop_s: float = 600.0,
+                 port_sla_s: float = 7200.0):
         self.ctx, self.gps_sla, self.other_sla, self.drop = ctx, gps_sla_s, other_sla_s, drop_s
+        self.sla = {"gps": gps_sla_s, "stock": other_sla_s, "port": port_sla_s, "asn": math.inf}
 
     def sweep(self) -> int:
         live = self.ctx.live
@@ -244,13 +282,14 @@ class SlaMonitor:
             elif age > self.gps_sla and v["status"] != "predicted":
                 v["status"] = "predicted"
                 live.dirty_vehicles.add(vid)
-        for sid, s in live.sources.items():
-            sla = self.gps_sla if s["kind"] == "gps" else self.other_sla
+        for s in live.sources.values():
+            sla = self.sla.get(s["kind"], self.other_sla)
             age = (now - s["last_ts"]).total_seconds()
-            if age > sla and s["state"] == "live" and age < self.drop:
+            if age > sla and s["state"] == "live" and age < sla + self.drop:
                 s["state"] = "silent"
+                s["silent_since"] = now
                 newly += 1
-            elif age >= self.drop and s["state"] != "gone":
+            elif age >= sla + self.drop and s["state"] != "gone":
                 s["state"] = "gone"
         if newly >= 3:
             live.alert("sec", "Telemetry silent (SLA)", f"{newly} sources stopped reporting within {self.gps_sla:.0f} s; "

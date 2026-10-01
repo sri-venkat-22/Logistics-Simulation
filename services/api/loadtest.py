@@ -98,8 +98,8 @@ async def drain(url: str, expect: int, timeout_s: float = 120) -> float:
 def start_server(port: int) -> subprocess.Popen:
     env = {**os.environ, "AEGIS_REDIS_URL": "redis://localhost:6379/4", "AEGIS_DB_URL": "postgresql+psycopg://localhost/aegis_test",
            "AEGIS_TWIN_FACTOR": "0", "AEGIS_SCENARIO_WORKERS": "1"}
-    subprocess.run(["redis-cli", "-n", "4", "flushdb"], check=False, capture_output=True)
-    proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "services.api.app.main:app", "--port", str(port), "--log-level",
+    subprocess.run(["redis-cli", "-n", "4", "flushdb"], check=False, capture_output=True)  # noqa: S603, S607 - fixed argv, local dev tool
+    proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "services.api.app.main:app", "--port", str(port), "--log-level",  # noqa: S603
                              "warning"], cwd=ROOT, env=env)
     for _ in range(200):
         try:

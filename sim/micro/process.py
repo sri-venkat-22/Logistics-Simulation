@@ -135,7 +135,7 @@ class MicroProcess:
         self.hubs: dict[str, dict] = {}
         self.proc = None
 
-    def start(self) -> "MicroProcess":
+    def start(self) -> MicroProcess:
         ctx = mp.get_context("spawn")
         self.cmd_q, self.out_q = ctx.Queue(), ctx.Queue()
         self.proc = ctx.Process(target=_worker, args=(self.cmd_q, self.out_q, self.opts), daemon=True, name="sumo-micro")
@@ -146,7 +146,7 @@ class MicroProcess:
         self.hubs = msg["hubs"]
         return self
 
-    def __enter__(self) -> "MicroProcess":
+    def __enter__(self) -> MicroProcess:
         return self.start() if self.proc is None else self
 
     def __exit__(self, *exc) -> None:

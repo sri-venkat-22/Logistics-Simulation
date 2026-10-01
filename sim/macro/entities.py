@@ -107,7 +107,7 @@ class Job:
 
 
 class Supplier:
-    def __init__(self, twin: "Twin", node: Node, random_failures: bool = True):
+    def __init__(self, twin: Twin, node: Node, random_failures: bool = True):
         self.twin, self.node, self.id = twin, node, node.id
         env = twin.env
         self.infinite = math.isinf(node.capacity)
@@ -199,7 +199,7 @@ class Supplier:
 
 # ---------------------------------------------------------------------------------------------- Port
 class Port:
-    def __init__(self, twin: "Twin", node: Node):
+    def __init__(self, twin: Twin, node: Node):
         self.twin, self.node, self.id = twin, node, node.id
         self.n_berths = int(node.attrs.get("berths", 3))
         self.berths = simpy.Resource(twin.env, capacity=self.n_berths)
@@ -252,7 +252,7 @@ class Port:
 
 # ---------------------------------------------------------------------------------------------- Warehouse
 class Warehouse:
-    def __init__(self, twin: "Twin", node: Node, storage_days: float = 30.0):
+    def __init__(self, twin: Twin, node: Node, storage_days: float = 30.0):
         self.twin, self.node, self.id = twin, node, node.id
         self.storage_days = storage_days
         self.stock: dict[str, simpy.Container] = {}
@@ -376,7 +376,7 @@ class Warehouse:
 
 # ---------------------------------------------------------------------------------------------- Lane
 class Lane:
-    def __init__(self, twin: "Twin", spec: LaneSpec):
+    def __init__(self, twin: Twin, spec: LaneSpec):
         self.twin, self.spec, self.id = twin, spec, spec.id
         self.rng = twin.rng("lane", spec.id)
         self.live_mult = 1.0      # observed multiplier (e.g. from SUMO corridor times after a road closure)
@@ -420,7 +420,7 @@ class Lane:
 
 # ---------------------------------------------------------------------------------------------- DemandZone
 class DemandZone:
-    def __init__(self, twin: "Twin", node: Node, skus: list[str]):
+    def __init__(self, twin: Twin, node: Node, skus: list[str]):
         self.twin, self.node, self.id = twin, node, node.id
         for sku in skus:
             gen = self.renewal if hasattr(twin.demand, "interarrival_h") else self.daily

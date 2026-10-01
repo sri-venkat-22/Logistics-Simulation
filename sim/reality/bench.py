@@ -21,7 +21,6 @@ import hashlib
 import json
 import sys
 import time
-from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo

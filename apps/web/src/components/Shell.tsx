@@ -9,6 +9,7 @@ import { useLive } from "../lib/live";
 import { Kbd, MockChip, Ticker } from "./ui";
 import { CommandPalette } from "./CommandPalette";
 import { CopilotDrawer } from "./CopilotDrawer";
+import { LoginDialog, UserChip } from "./LoginDialog";
 
 export function Logo({ size = 28 }: { size?: number }) {
   return (
@@ -116,7 +117,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const current = SCREENS.find((s) => s.path === loc.pathname) ?? SCREENS[0];
   const isIntro = loc.pathname === "/intro";
   const live = useLive((st) => st.status !== "offline" || !!st.network);
-  const liveScreen = live && (loc.pathname === "/" || loc.pathname === "/scenario");
+  const liveScreen = live && ["/", "/scenario", "/trust", "/fidelity", "/network"].includes(loc.pathname);
   useEffect(() => { useLive.getState().connect(); }, []);
 
   useEffect(() => {
@@ -197,6 +198,7 @@ export function Shell({ children }: { children: ReactNode }) {
               {liveScreen ? <LiveChip /> : <MockChip />}
               <IngestRate />
               <Clock />
+              <UserChip />
               <button onClick={() => setPaletteOpen(true)} className="flex items-center gap-2 h-7 pl-2 pr-1.5 rounded-lg border border-line text-[12px] text-ink-3 hover:text-ink hover:border-line-strong cursor-pointer transition">
                 <Command size={13} /> Search <Kbd>⌘K</Kbd>
               </button>
@@ -208,6 +210,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <CommandPalette />
       <CopilotDrawer />
       <DirectorBar />
+      <LoginDialog />
     </div>
   );
 }

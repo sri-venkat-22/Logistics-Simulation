@@ -113,7 +113,7 @@ def test_attack_semantics(run):
 def test_hidden_perturbations_recorded(run):
     em, _, truth = run
     kinds = Counter(p["kind"] for p in truth["perturbations"])
-    assert kinds["lane_bias"] == sum(1 for l in em.twin.net.lanes.values() if l.mode == "road")
+    assert kinds["lane_bias"] == sum(1 for l in em.twin.net.lanes.values() if l.mode == "road" and not l.transfer_only)
     assert kinds["demand_drift"] >= 3
     assert all(1.0 <= p["multiplier"] <= 1.15 for p in truth["perturbations"] if p["kind"] == "lane_bias")
 

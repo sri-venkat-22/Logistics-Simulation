@@ -1,0 +1,129 @@
+{
+  "generated": "2026-10-01T04:19:39+05:30",
+  "quantiles": [
+    0.1,
+    0.5,
+    0.9
+  ],
+  "twin": {
+    "dataset": {
+      "source": "Reality Emulator (seed 3042, hidden lane bias + incidents, announced weather)",
+      "days": 360.0,
+      "legs": 19690,
+      "train": 15139,
+      "test": 4551,
+      "split": "time, last 20 % held out"
+    },
+    "features": [
+      "lane_code",
+      "mode_code",
+      "distance_km",
+      "sched_h",
+      "hour",
+      "weekday",
+      "weather_mult",
+      "calibrated"
+    ],
+    "target": "realised transit hours / scheduled mean",
+    "test": {
+      "n": 4551,
+      "mae_h": 6.76,
+      "baseline_mae_h": 7.093,
+      "mape": 0.2035,
+      "p10_p90_coverage": 0.7816,
+      "below_p10": 0.102,
+      "above_p90": 0.1165,
+      "interval_width_h": 20.679
+    },
+    "test_by_mode": {
+      "road": {
+        "n": 3653,
+        "mae_h": 2.71,
+        "baseline_mae_h": 2.82,
+        "mape": 0.1911,
+        "p10_p90_coverage": 0.7788,
+        "below_p10": 0.1027,
+        "above_p90": 0.1185,
+        "interval_width_h": 8.296
+      },
+      "rail": {
+        "n": 597,
+        "mae_h": 15.745,
+        "baseline_mae_h": 16.72,
+        "mape": 0.2802,
+        "p10_p90_coverage": 0.8057,
+        "below_p10": 0.0888,
+        "above_p90": 0.1055,
+        "interval_width_h": 49.983
+      },
+      "sea": {
+        "n": 142,
+        "mae_h": 79.591,
+        "baseline_mae_h": 83.355,
+        "mape": 0.2776,
+        "p10_p90_coverage": 0.7676,
+        "below_p10": 0.1127,
+        "above_p90": 0.1197,
+        "interval_width_h": 235.726
+      },
+      "air": {
+        "n": 159,
+        "mae_h": 1.04,
+        "baseline_mae_h": 0.999,
+        "mape": 0.1331,
+        "p10_p90_coverage": 0.7673,
+        "below_p10": 0.1258,
+        "above_p90": 0.1069,
+        "interval_width_h": 3.095
+      }
+    },
+    "feature_gain": {
+      "lane_code": 2785,
+      "mode_code": 9,
+      "distance_km": 913,
+      "sched_h": 185,
+      "hour": 1240,
+      "weekday": 389,
+      "weather_mult": 1350,
+      "calibrated": 161
+    },
+    "wall_s": 29.0
+  },
+  "dataco": {
+    "dataset": {
+      "source": "DataCo Smart Supply Chain (Constante et al. 2019, CC BY 4.0)",
+      "rows": 180519,
+      "train": 144415,
+      "test": 36104,
+      "split": "time by order date, last 20 % held out",
+      "test_from": "2017-04-22"
+    },
+    "features": [
+      "Shipping Mode",
+      "Market",
+      "Order Region",
+      "Category Name",
+      "Customer Segment",
+      "Days for shipment (scheduled)",
+      "month",
+      "weekday",
+      "hour"
+    ],
+    "regression_days_real": {
+      "n": 36104,
+      "mae_days": 1.031,
+      "baseline_mae_days": 1.285,
+      "mape": 50687.2981,
+      "p10_p90_coverage": 0.938,
+      "below_p10": 0.0295,
+      "above_p90": 0.0326,
+      "interval_width_days": 3.402
+    },
+    "late_delivery": {
+      "auc": 0.7591,
+      "baseline_auc_scheduled_days": 0.7014,
+      "late_share_test": 0.5466
+    },
+    "wall_s": 20.0
+  }
+}

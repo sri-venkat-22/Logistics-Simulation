@@ -62,7 +62,7 @@ def sumo_home() -> Path:
 
 def run(cmd: list[str]) -> None:
     print("  $", " ".join(str(c) for c in cmd[:6]), "..." if len(cmd) > 6 else "")
-    subprocess.run([str(c) for c in cmd], check=True, env={**os.environ, "SUMO_HOME": str(sumo_home())})
+    subprocess.run([str(c) for c in cmd], check=True, env={**os.environ, "SUMO_HOME": str(sumo_home())})  # noqa: S603 - argv built here
 
 
 def download(overpass: bool = False) -> None:
@@ -76,9 +76,9 @@ def download(overpass: bool = False) -> None:
     import urllib.request
     for url, dest in ((EXTRACT_URL, PBF), (EXTRACT_URL + ".md5", PBF.with_suffix(".pbf.md5"))):
         print(f"  downloading {url}")
-        urllib.request.urlretrieve(url, dest)
+        urllib.request.urlretrieve(url, dest)  # noqa: S310 - fixed https URL constant
     want = PBF.with_suffix(".pbf.md5").read_text().split()[0]
-    got = hashlib.md5(PBF.read_bytes()).hexdigest()
+    got = hashlib.md5(PBF.read_bytes(), usedforsecurity=False).hexdigest()  # Geofabrik's published checksum
     if want != got:
         raise SystemExit(f"md5 mismatch for {PBF.name}: {got} != {want}")
 

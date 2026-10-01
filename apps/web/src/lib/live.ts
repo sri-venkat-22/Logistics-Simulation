@@ -9,7 +9,8 @@
  */
 import { decode } from "@msgpack/msgpack";
 import { create } from "zustand";
-import { WS_URL, getNetwork, type ApiNetwork } from "./api";
+import { getNetwork, listDisruptions, wsUrl, type ApiNetwork, type TwinEffect } from "./api";
+import { useAuth } from "./auth";
 import type { Sev } from "./data";
 
 export interface LiveVehicle {
@@ -61,8 +62,9 @@ function upsert(row: Row, t: number) {
 }
 
 interface LiveStore {
-  status: "idle" | "connecting" | "live" | "offline";
+  status: "idle" | "connecting" | "live" | "offline" | "unauthorized";
   network: ApiNetwork | null;
+  disruptions: TwinEffect[];
   inventory: Record<string, LiveInv>;
   ports: Record<string, { status: string; berth_queue: number; anchorage: number; berths_busy: number; berths_total: number }>;
   kpis: LiveKpis | null;
@@ -74,6 +76,8 @@ interface LiveStore {
   vehicleCount: number;
   dataVersion: number;
   connect: () => void;
+  /** Re-open the socket (e.g. after signing in, so it carries the new token). */
+  reconnect: () => void;
   refreshNetwork: () => Promise<void>;
 }
 
@@ -93,6 +97,7 @@ function pushHistory(h: Record<string, number[]>, k: LiveKpis): Record<string, n
 const makeStore = () => create<LiveStore>((set, get) => ({
   status: "idle",
   network: null,
+  disruptions: [],
   inventory: {},
   ports: {},
   kpis: null,
@@ -105,13 +110,16 @@ const makeStore = () => create<LiveStore>((set, get) => ({
   dataVersion: 0,
 
   refreshNetwork: async () => {
-    try { set({ network: await getNetwork(), dataVersion: get().dataVersion + 1 }); } catch { /* keep the last copy */ }
+    try {
+      const [network, disruptions] = await Promise.all([getNetwork(), listDisruptions()]);
+      set({ network, disruptions, dataVersion: get().dataVersion + 1 });
+    } catch { /* keep the last copy */ }
   },
 
   connect: () => {
     if (conn.ws && (conn.ws.readyState === WebSocket.OPEN || conn.ws.readyState === WebSocket.CONNECTING)) return;
     set({ status: get().status === "live" ? "live" : "connecting" });
-    const ws = new WebSocket(`${WS_URL}/ws/live`);
+    const ws = new WebSocket(wsUrl("/ws/live"));
     conn.ws = ws;
     ws.binaryType = "arraybuffer";
     ws.onopen = () => {
@@ -142,14 +150,28 @@ const makeStore = () => create<LiveStore>((set, get) => ({
       if (f.kpis) { patch.kpis = f.kpis; patch.kpiHistory = pushHistory(s.kpiHistory, f.kpis); }
       set(patch);
     };
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       conn.ws = null;
       window.clearInterval(conn.netTimer);
+      if (ev.code === 1008) {  // the API wants a token (production): ask the user to sign in
+        set({ status: "unauthorized" });
+        useAuth.getState().setLoginOpen(true);
+        conn.retry = 6;
+        window.setTimeout(() => get().connect(), 30_000);
+        return;
+      }
       set({ status: "offline" });
       conn.retry = Math.min(conn.retry + 1, 6);
       window.setTimeout(() => get().connect(), 500 * 2 ** conn.retry); // reconnect with backoff; the snapshot re-syncs
     };
     ws.onerror = () => ws.close();
+  },
+
+  reconnect: () => {
+    conn.retry = 0;
+    const ws = conn.ws;
+    if (ws) { ws.onclose = null; ws.close(); conn.ws = null; }
+    get().connect();
   },
 }));
 

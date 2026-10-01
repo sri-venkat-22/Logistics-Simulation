@@ -29,11 +29,11 @@ class Policy:
     review_h: float = 24.0
     lost_sales: bool = False  # True: unmet demand is lost instead of backordered
 
-    def levels(self, twin: "Twin", dc: str, sku: str, t_h: float) -> tuple[float, float]:
+    def levels(self, twin: Twin, dc: str, sku: str, t_h: float) -> tuple[float, float]:
         """(reorder point, order-up-to or reorder point + Q) at time t — for display and seeding."""
         raise NotImplementedError
 
-    def order_qty(self, twin: "Twin", dc: str, sku: str, ip: float, t_h: float) -> float:
+    def order_qty(self, twin: Twin, dc: str, sku: str, ip: float, t_h: float) -> float:
         raise NotImplementedError
 
     def describe(self) -> dict:
@@ -96,16 +96,17 @@ class DynamicSSPolicy(Policy):
         zones = twin.zones_served(dc, sku)
         day0 = (twin.start + timedelta(hours=t_h)).date()
         days = int(math.ceil(horizon))
+        fc = getattr(twin, "forecaster", None) or twin.demand  # an ML forecaster (ml.forecast) can replace the model
         mu_h = var_h = 0.0
         for i in range(days):
             frac = min(1.0, horizon - i)
             for z in zones:
-                m = twin.demand.mean(z, sku, day0 + timedelta(days=i))
+                m = fc.mean(z, sku, day0 + timedelta(days=i))
                 mu_h += m * frac
                 var_h += twin.demand.variance(m, sku) * frac
         mu_d = mu_h / horizon if horizon else 0.0
         s = mu_h + self.z * math.sqrt(var_h + mu_d * mu_d * varL)
-        cover = sum(twin.demand.mean(z, sku, day0 + timedelta(days=days + i))
+        cover = sum(fc.mean(z, sku, day0 + timedelta(days=days + i))
                     for i in range(int(self.cover_days)) for z in zones)
         return s, s + cover
 

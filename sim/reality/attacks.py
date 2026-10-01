@@ -123,7 +123,7 @@ class AttackInjector:
 
     # ------------------------------------------------------------------ campaign
     @classmethod
-    def random_campaign(cls, n: int, hours: float, seed: int = 7, mix: dict | None = None, t0_h: float = 0.0) -> "AttackInjector":
+    def random_campaign(cls, n: int, hours: float, seed: int = 7, mix: dict | None = None, t0_h: float = 0.0) -> AttackInjector:
         rng = np.random.default_rng([seed, 0xC4A1])
         mix = mix or DEFAULT_MIX
         types = list(mix)
@@ -156,7 +156,7 @@ class AttackInjector:
         self.attacks.append(a)
         return a
 
-    def bind(self, em: "RealityEmulator") -> None:
+    def bind(self, em: RealityEmulator) -> None:
         self.em = em
 
     # ------------------------------------------------------------------ time-driven
@@ -244,7 +244,8 @@ class AttackInjector:
         net = self.em.twin.net
         chain, frontier = [node], [node]
         for _ in range(depth):
-            nxt = sorted({l.to_id for l in net.lanes.values() if l.from_id in frontier and net.nodes[l.to_id].type == "dc"} - set(chain))
+            nxt = sorted({l.to_id for l in net.lanes.values() if l.from_id in frontier and not l.transfer_only
+                          and net.nodes[l.to_id].type == "dc"} - set(chain))
             if not nxt:
                 break
             pick = str(self.rng.choice(nxt))
@@ -271,7 +272,7 @@ class AttackInjector:
         for m in msgs:
             self.seen_at[m["source_id"]] = now_h
 
-    def transform(self, msgs: list[dict], now_h: float) -> list[tuple[dict, "Attack | None", str]]:
+    def transform(self, msgs: list[dict], now_h: float) -> list[tuple[dict, Attack | None, str]]:
         """Clean messages in, (message, attack or None, action) out - possibly dropped, altered or doubled."""
         self.observe(msgs, now_h)
         out: list[tuple[dict, Attack | None, str]] = []

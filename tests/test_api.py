@@ -1,6 +1,7 @@
 """Phase 4: ingest (auth, validation), trust + twin-state stages, WebSocket fan-out, REST, RBAC, scenario jobs,
 migrations. Needs local Redis and Postgres (aegis_test); skipped otherwise."""
 import json
+import os
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -9,12 +10,14 @@ import msgpack
 import orjson
 import pytest
 
+TEST_DB = os.environ.get("AEGIS_TEST_DB_URL", "postgresql+psycopg://localhost/aegis_test")
+
 try:
     import redis
     from sqlalchemy import create_engine, text
 
     redis.Redis.from_url("redis://localhost:6379/15").ping()
-    _eng = create_engine("postgresql+psycopg://localhost/aegis_test")
+    _eng = create_engine(TEST_DB)
     with _eng.connect() as _c:
         _c.execute(text("select 1 from schema_info"))
     AVAILABLE = True
@@ -40,7 +43,7 @@ ADMIN = {"Authorization": "Bearer dev-admin"}
 @pytest.fixture(scope="module")
 def client():
     redis.Redis.from_url("redis://localhost:6379/15").flushdb()
-    app = create_app(Settings(redis_url="redis://localhost:6379/15", db_url="postgresql+psycopg://localhost/aegis_test",
+    app = create_app(Settings(redis_url="redis://localhost:6379/15", db_url=TEST_DB,
                               twin_factor=0, scenario_workers=2, ws_hz=10))
     with TestClient(app) as c:
         yield c
@@ -144,7 +147,7 @@ def test_trust_stage_quarantines_duplicates_teleports_and_forgeries(client, tele
     ctx = client.app.state.ctx
     gps = [m for m in telemetry if m["kind"] == "gps"]
     before = dict(ctx.live.reject_reasons)
-    post(client, "telemetry", gps[:2])                       # duplicates of already accepted messages
+    post(client, "telemetry", gps[:2])                       # re-sent, ~12 min behind their sources: replays
     last = max((m for m in gps if m["payload"]["vehicle_id"] == gps[0]["payload"]["vehicle_id"]), key=lambda m: m["ts"])
     tele = json.loads(json.dumps(last))
     tele["msg_id"] = "teleport000000000001"
@@ -159,7 +162,7 @@ def test_trust_stage_quarantines_duplicates_teleports_and_forgeries(client, tele
 
     def delta(key):
         return ctx.live.reject_reasons.get(key, 0) - before.get(key, 0)
-    wait_for(lambda: delta(("L3", "DUPLICATE_ID")) >= 2 and delta(("L4", "PHYSICS_TELEPORT")) >= 1 and delta(("L2", "HMAC_INVALID")) >= 1)
+    wait_for(lambda: delta(("L3", "REPLAY_NONCE")) >= 2 and delta(("L4", "PHYSICS_TELEPORT")) >= 1 and delta(("L2", "HMAC_INVALID")) >= 1)
     q = client.get("/api/v1/trust/quarantine").json()
     assert {"L2", "L3", "L4"} <= {x["layer"] for x in q}
     assert client.get("/api/v1/trust/stats").json()["by_layer"]["L3"] >= 2
@@ -204,7 +207,7 @@ def test_ws_live_snapshot_then_diffs(client, telemetry):
 
 def test_rest_network_nodes_shipments(client):
     n = client.get("/api/v1/network").json()
-    assert n["counts"] == {"nodes": 28, "lanes": 49} and len(n["skus"]) == 3
+    assert n["counts"] == {"nodes": 28, "lanes": 53} and len(n["skus"]) == 3
     shm = next(x for x in n["nodes"] if x["id"] == "DC_HYD_SHAMSHABAD")
     assert shm["tts_d"] is not None and shm["ttr_d"] == 5.0
     d = client.get("/api/v1/nodes/DC_HYD_SHAMSHABAD").json()
@@ -259,14 +262,16 @@ def test_scenario_job_cache_progress_deltas_optimize_apply(client):
     assert all("score" in p for p in plans) and plans == sorted(plans, key=lambda p: -p["score"])
     assert g.get("baseline_id") == st["baseline_id"] and "deltas" in client.get(f"/api/v1/scenarios/{st['id']}").json()  # the
     # "Do nothing" plan has the scenario's own spec: its cache hit must not overwrite the scenario job
-    reroute = next((p for p in plans if p["actions"] and p["actions"][0]["type"] == "set_path"), plans[0])
-    assert client.post(f"/api/v1/plans/{reroute['id']}/apply").status_code == 401
-    a = client.post(f"/api/v1/plans/{reroute['id']}/apply", headers=PLANNER).json()
-    assert a["applied_by"] == "planner-token"
+    assert any(p["pareto"] for p in plans) and all("explanation" in p for p in plans)
+    assert "cvar95_lakh" in plans[0] and client.get(f"/api/v1/scenarios/{st['id']}/plans", params={"cost": 5}).json()["weights"]["cost"] == 5
+    buffer = next(p for p in plans if p["kind"] == "buffer")
+    assert client.post(f"/api/v1/plans/{buffer['id']}/apply").status_code == 401
     ctx = client.app.state.ctx
-    for act in reroute["actions"]:
-        if act["type"] == "set_path":
-            assert ctx.twin.twin.path_choice[(act["dc"], act["sku"])] == act["path"]
+    z0 = ctx.twin.twin.warehouses["DC_BLR"].policy["SKU_VAX"].z
+    a = client.post(f"/api/v1/plans/{buffer['id']}/apply", headers=PLANNER).json()
+    assert a["applied_by"] == "planner-token" and all(x["ok"] for x in a["acks"])
+    assert ctx.twin.twin.warehouses["DC_BLR"].policy["SKU_VAX"].z == pytest.approx(z0 + 0.8)
+    assert client.get(f"/api/v1/plans/{buffer['id']}").json()["name"].startswith("Buffer")
 
 
 def test_metrics_exposed(client):
@@ -274,3 +279,52 @@ def test_metrics_exposed(client):
     for name in ("aegis_ingest_messages_total", "aegis_rejects_total", "aegis_clean_messages_total", "aegis_ws_frames_total",
                  "aegis_scenario_jobs_total", "aegis_db_rows_written"):
         assert name in t
+
+
+def test_push_disruption_to_live_twin_and_end_it(client):
+    ctx = client.app.state.ctx
+    assert client.post("/api/v1/disruptions", json={"template": "port_closure"}).status_code == 401
+    r = client.post("/api/v1/disruptions", json={"template": "port_closure", "duration_h": 24}, headers=PLANNER)
+    assert r.status_code == 202 and r.json()["impact"]["nodes"] == {"PORT_CHENNAI": 0.0}
+    assert {"DC_BLR/SKU_ELEC", "DC_HYD_SHAMSHABAD/SKU_ELEC"} <= set(r.json()["impact"]["dependents"])
+    ctx.twin.advance(0.01)  # paused twin in tests: let the scenario process start
+    effects = client.get("/api/v1/disruptions").json()
+    eff = next(e for e in effects if e["type"] == "port_closure")
+    assert eff["nodes"] == ["PORT_CHENNAI"]
+    chennai = next(n for n in client.get("/api/v1/network").json()["nodes"] if n["id"] == "PORT_CHENNAI")
+    assert chennai["twin_status"] == "closed"
+    assert any(a.kind == "disruption" for a in ctx.live.alerts)
+    assert client.delete(f"/api/v1/disruptions/{eff['id']}", headers=PLANNER).json()["ok"]
+    assert not [e for e in client.get("/api/v1/disruptions").json() if e["type"] == "port_closure"]
+    assert client.delete("/api/v1/disruptions/E999", headers=PLANNER).status_code == 404
+    st = client.post("/api/v1/scenarios", json={"template": "cyclone", "n": 5, "days": 5}, headers=PLANNER).json()
+    g = client.get(f"/api/v1/scenarios/{st['id']}").json()
+    assert "PORT_CHENNAI" in g["impact"]["nodes"] and g["impact"]["lanes"] and g["impact"]["polygons"]
+
+
+def sse(client, prompt, headers=PLANNER):
+    with client.stream("POST", "/api/v1/copilot/chat", json={"messages": [{"role": "user", "content": prompt}]},
+                       headers=headers) as r:
+        assert r.status_code == 200
+        return [orjson.loads(line[6:]) for line in r.iter_lines() if line.startswith("data: ")]
+
+
+def test_copilot_offline_what_if_to_proposal(client, monkeypatch):
+    monkeypatch.setenv("AEGIS_COPILOT", "offline")
+    assert client.get("/api/v1/copilot/status").json()["mode"] == "offline"
+    assert client.post("/api/v1/copilot/chat", json={"messages": [{"role": "user", "content": "hi"}]}).status_code == 401
+    evs = sse(client, "What if the Patancheru plant has a 3 day outage? 12 runs over 8 days")
+    calls = [e["name"] for e in evs if e["type"] == "tool_call"]
+    assert calls == ["create_scenario", "run_scenario", "optimize", "propose_apply"]
+    assert all(e["ok"] for e in evs if e["type"] == "tool_result")
+    prop = next(e for e in evs if e["type"] == "proposal")
+    assert prop["apply_url"].endswith("/apply") and prop["requires_role"] == "planner"
+    assert evs[-1]["type"] == "done" and "".join(e["delta"] for e in evs if e["type"] == "text")
+    ctx = client.app.state.ctx
+    z = ctx.twin.twin.warehouses["DC_BLR"].policy["SKU_VAX"].z
+    assert ctx.twin.twin.warehouses["DC_BLR"].policy["SKU_VAX"].z == z  # proposing never applies
+    viewer = sse(client, "What if a cyclone closes Chennai port for 5 days?", headers={"Authorization": "Bearer dev-viewer"})
+    denied = next(e for e in viewer if e["type"] == "tool_result")
+    assert denied["ok"] is False and "planner" in denied["summary"]      # what-ifs need the planner role
+    risk = sse(client, "Which nodes are most at risk?", headers={"Authorization": "Bearer dev-viewer"})
+    assert [e["name"] for e in risk if e["type"] == "tool_call"] == ["find_at_risk_nodes"]

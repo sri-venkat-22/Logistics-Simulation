@@ -27,7 +27,7 @@ import urllib.error
 import urllib.request
 from collections import defaultdict
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 from sim.reality.schemas import CHANNEL
 
@@ -59,8 +59,12 @@ class Signer:
         return msg
 
     def verify(self, msg: dict) -> bool:
+        return self.verify_with(msg, self.key(msg["source_id"]))
+
+    @staticmethod
+    def verify_with(msg: dict, key: bytes) -> bool:
         body = {k: v for k, v in msg.items() if k != "sig"}
-        want = hmac.new(self.key(msg["source_id"]), canonical(body).encode(), hashlib.sha256).hexdigest()
+        want = hmac.new(key, canonical(body).encode(), hashlib.sha256).hexdigest()
         return hmac.compare_digest(want, str(msg.get("sig", "")))
 
 
@@ -159,11 +163,13 @@ class HttpSink(Sink):
         batch, self.buf[ch] = self.buf[ch], []
         if not batch:
             return
+        if not self.base.startswith(("http://", "https://")):
+            raise ValueError("the ingest URL must be http(s)")
         body = json.dumps({"messages": batch}, separators=(",", ":"), allow_nan=True).encode()
-        req = urllib.request.Request(f"{self.base}/api/v1/ingest/{ch}", data=body, method="POST", headers=self.headers(body))
+        req = urllib.request.Request(f"{self.base}/api/v1/ingest/{ch}", data=body, method="POST", headers=self.headers(body))  # noqa: S310
         self.batches += 1
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_s) as r:
+            with urllib.request.urlopen(req, timeout=self.timeout_s) as r:  # noqa: S310 - scheme checked above
                 self.status_counts[r.status] += 1
                 self.sent += len(batch)
         except urllib.error.HTTPError as e:

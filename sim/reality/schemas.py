@@ -87,7 +87,7 @@ class PortPayload(_Strict):
     customs: int = Field(ge=0)
 
 
-PAYLOAD = {"gps": GpsPayload, "stock": StockPayload, "asn": AsnPayload, "port": PortPayload}
+PAYLOAD: dict[str, type[_Strict]] = {"gps": GpsPayload, "stock": StockPayload, "asn": AsnPayload, "port": PortPayload}
 
 
 class Envelope(_Strict):

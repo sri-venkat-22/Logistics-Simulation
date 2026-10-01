@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     t0 = time.perf_counter()
     with MicroProcess(seed=a.seed, background=a.background) as micro:
         ct = CoupledTwin(twin, micro, sync_s=a.sync)
-        print(f"  coupled lanes: " + ", ".join(f"{l} ({p.kind})" for l, p in sorted(ct.plans.items())))
+        print("  coupled lanes: " + ", ".join(f"{l} ({p.kind})" for l, p in sorted(ct.plans.items())))
         ct.run_until(a.hours)
         snap = ct.snapshot()
     wall = time.perf_counter() - t0

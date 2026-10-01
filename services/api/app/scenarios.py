@@ -6,15 +6,18 @@ POST /scenarios              {"spec": RunSpec | "template": name, "n": 200, "bas
 GET  /scenarios/{id}         status, progress, result (KPI bands, series bands, stock-out probability, TTS)
                              and, when the paired baseline is done, KPI deltas (P50 scenario - P50 baseline)
 WS   /ws/scenarios/{id}      progress events {"status", "done", "n", ...} until done / error
-POST /scenarios/{id}/optimize  candidate plans (do nothing, reroute the affected DC x SKU pairs onto each
-                             alternate sourcing path, raise safety stock) evaluated with the same seeds
-                             (common random numbers), scored on service / cost / CO2
+POST /scenarios/{id}/optimize  candidate plans from sim.optimize.optimizer (reroute via k-shortest paths, switch
+                             sourcing, min-cost-flow stock transfers, expedite by air, buffer, combinations),
+                             each evaluated with Monte Carlo on the same seeds (common random numbers); Pareto
+                             front + weighted score; an explanation from one evidence replication's event log
+GET  /scenarios/{id}/plans   re-rank with the planner's weights (service, risk = CVaR95 shortfall, cost, CO2)
 POST /plans/{id}/apply       planner+: push the plan's actions into the live twin; audit_log row
 Jobs run replication chunks in a ProcessPoolExecutor (spawn), so the API event loop stays responsive.
 """
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import logging
 import multiprocessing as mp
@@ -31,6 +34,7 @@ from services.api.app import metrics as M
 from services.api.app.auth import Identity, require
 from services.api.app.db.store import audit, execute
 from sim.macro.montecarlo import RunSpec, run_one, summarize
+from sim.optimize import optimizer
 from sim.paths import SCENARIO_TEMPLATES
 from sim.scenarios.dsl import Scenario
 
@@ -68,7 +72,7 @@ def template(name: str) -> Scenario:
 
 
 class ScenarioService:
-    def __init__(self, ctx: "Ctx", workers: int):
+    def __init__(self, ctx: Ctx, workers: int):
         self.ctx = ctx
         self.workers = max(1, workers)
         self.pool: ProcessPoolExecutor | None = None
@@ -94,25 +98,35 @@ class ScenarioService:
         await self.ctx.redis.set(f"scn:{sid}", orjson.dumps(st), ex=self.ctx.settings.cache_ttl_s)
         await self.ctx.redis.publish(f"scn:progress:{sid}", orjson.dumps({k: v for k, v in st.items() if k != "result"}))
 
-    async def submit(self, spec: RunSpec, n: int, kind: str = "scenario", user: str = "anonymous", parent: str | None = None) -> dict:
+    @staticmethod
+    def job_id(spec: RunSpec, n: int) -> str:
+        return uuid.uuid5(uuid.NAMESPACE_URL, f"aegis:{cache_key(spec, n)}").hex[:16]
+
+    async def submit(self, spec: RunSpec, n: int, kind: str = "scenario", user: str = "anonymous", parent: str | None = None,
+                     extra: dict | None = None) -> dict:
+        """extra: fields stored with the job from the start (e.g. baseline_id), so the running job never drops them."""
         key = cache_key(spec, n)
         r = self.ctx.redis
-        sid = uuid.uuid5(uuid.NAMESPACE_URL, f"aegis:{key}").hex[:16]
+        sid = self.job_id(spec, n)
+        extra = extra or {}
         st = await self.get(sid)
         if st and st["status"] in ("queued", "running"):
             return st
         if st and st["status"] == "done" and await r.exists(f"scn:result:{key}"):
             M.SCENARIO_JOBS.labels("cache_hit").inc()
+            if any(k not in st for k in extra):
+                st.update({k: v for k, v in extra.items() if k not in st})
+                await self.put(sid, st)
             return {**st, "cached": True}  # same spec, same job: never overwrite it (it may carry a baseline_id)
         cached = await r.get(f"scn:result:{key}")
         if cached:
             st = {"id": sid, "kind": kind, "status": "done", "cached": True, "done": n, "n": n, "spec_hash": key,
-                  "spec": orjson.loads(spec.model_dump_json()), "parent": parent, "wall_s": 0.0}
+                  "spec": orjson.loads(spec.model_dump_json()), "parent": parent, "wall_s": 0.0, **extra}
             await self.put(sid, st)
             M.SCENARIO_JOBS.labels("cache_hit").inc()
             return st
         st = {"id": sid, "kind": kind, "status": "queued", "cached": False, "done": 0, "n": n, "spec_hash": key,
-              "spec": orjson.loads(spec.model_dump_json()), "parent": parent, "created_by": user}
+              "spec": orjson.loads(spec.model_dump_json()), "parent": parent, "created_by": user, **extra}
         await self.put(sid, st)
         execute(self.ctx.engine, "insert into scenarios(id, spec, spec_hash, n_reps, status, created_by) values "
                 "(:id, cast(:spec as jsonb), :h, :n, 'queued', :u) on conflict (id) do update set status = 'queued'",
@@ -171,6 +185,28 @@ def _deltas(res: dict, base: dict) -> dict:
     return out
 
 
+def impact(ctx: Ctx, spec: RunSpec) -> dict:
+    """What the scenario disrupts, for drawing it on a map: nodes (with remaining capacity), lanes (time
+    multiplier), zones (demand multiplier) and the DC x SKU pairs whose stock depends on them."""
+    from sim.macro.disruptions import build_effect
+    twin = ctx.twin.twin
+    nodes: dict[str, float] = {}
+    lanes: dict[str, float] = {}
+    zones: dict[str, float] = {}
+    deps: set[tuple[str, str]] = set()
+    for sc in spec.scenarios:
+        e = build_effect(sc, twin.net)
+        for table in (e.node_factor, e.production_factor, e.dispatch_factor):
+            for n, f in table.items():
+                nodes[n] = min(nodes.get(n, 1.0), f)
+        lanes.update(e.lane_mult)
+        for (z, _), m in e.demand_mult.items():
+            zones[z] = m
+        deps |= twin.dependents(e)
+    return {"nodes": nodes, "lanes": lanes, "zones": zones, "dependents": sorted(f"{d}/{k}" for d, k in deps),
+            "polygons": [sc.polygon for sc in spec.scenarios if sc.polygon]}
+
+
 def svc(request: Request) -> ScenarioService:
     return request.app.state.ctx.scenarios
 
@@ -184,14 +220,13 @@ async def create_scenario(body: ScenarioRequest, request: Request, who: Identity
         spec = RunSpec(days=body.days, scenarios=[template(body.template)])
     else:
         raise HTTPException(422, "give a spec or a template")
-    st = await s.submit(spec, body.n, "scenario", who.user)
-    if body.baseline and spec.scenarios:
-        base = spec.model_copy(update={"scenarios": [], "path_choice": {}})
-        bst = await s.submit(base, body.n, "baseline", who.user, parent=st["id"])
-        st["baseline_id"] = bst["id"]
-        stored = await s.get(st["id"])
-        stored["baseline_id"] = bst["id"]
-        await s.put(st["id"], stored)
+    base = spec.model_copy(update={"scenarios": [], "path_choice": {}, "routes": {}, "transfers": []})
+    with_base = body.baseline and bool(spec.scenarios)
+    extra = {"baseline_id": s.job_id(base, body.n)} if with_base else None
+    st = await s.submit(spec, body.n, "scenario", who.user, extra=extra)
+    if with_base:
+        await s.submit(base, body.n, "baseline", who.user, parent=st["id"])
+        st["baseline_id"] = extra["baseline_id"]
     return st
 
 
@@ -224,15 +259,22 @@ async def get_scenario(sid: str, request: Request, series: bool = True) -> dict:
                     base = await s.result(bst)
                     if base:
                         st["deltas"] = _deltas(res, base)
-    plans = await request.app.state.ctx.redis.get(f"scn:plans:{sid}")
+    ctx = request.app.state.ctx
+    plans = await ctx.redis.get(f"scn:plans:{sid}")
     if plans:
         st["plans"] = orjson.loads(plans)
+    if ctx.twin is not None:
+        st["impact"] = impact(ctx, RunSpec.model_validate(st["spec"]))
     return st
 
 
 @router.websocket("/ws/scenarios/{sid}")
 async def scenario_progress(ws: WebSocket, sid: str) -> None:
     ctx: Ctx = ws.app.state.ctx
+    from services.api.app.auth import ws_allowed
+    if not await ws_allowed(ws):
+        await ws.close(code=1008)
+        return
     await ws.accept()
     pubsub = ctx.redis.pubsub()
     await pubsub.subscribe(f"scn:progress:{sid}")
@@ -256,51 +298,32 @@ async def scenario_progress(ws: WebSocket, sid: str) -> None:
     finally:
         await pubsub.unsubscribe()
         await pubsub.aclose()
-        try:
+        with contextlib.suppress(Exception):
             await ws.close()
-        except Exception:
-            pass
 
 
-# ------------------------------------------------------------------------------ optimisation (v1)
-def candidate_plans(ctx: "Ctx", spec: RunSpec) -> list[dict]:
-    """Do nothing; reroute every affected DC x SKU pair onto alternate path k; raise safety stock."""
-    from sim.macro.disruptions import build_effect
-    twin = ctx.twin.twin
-    affected: set[tuple[str, str]] = set()
-    for sc in spec.scenarios:
-        affected |= twin.dependents(build_effect(sc, twin.net))
-    plans = [{"name": "Do nothing", "actions": []}]
-    max_alt = max((len(twin.net.replenishment[p]) for p in affected), default=1)
-    for k in range(1, max_alt):
-        acts = [{"type": "set_path", "dc": dc, "sku": sku, "path": k} for dc, sku in sorted(affected)
-                if len(twin.net.replenishment[(dc, sku)]) > k]
-        if acts:
-            via = sorted({twin.net.replenishment[(a["dc"], a["sku"])][k].nodes[1] for a in acts})
-            plans.append({"name": f"Reroute via {', '.join(v.replace('PORT_', '').replace('DC_', '') for v in via[:3])}",
-                          "actions": acts})
-    fams = sorted({twin.net.skus[sku].family for _, sku in affected})
-    if fams:
-        plans.append({"name": f"Buffer: +0.8 safety factor ({', '.join(fams)})",
-                      "actions": [{"type": "policy", "family": f, "dz": 0.8} for f in fams]})
-    return plans
+# ------------------------------------------------------------------------------ optimisation (Phase 7.1)
+def _levels(ctx: Ctx) -> dict:
+    return {k: v for k, v in ctx.twin._levels.items()} if ctx.twin else {}
 
 
-def plan_spec(spec: RunSpec, actions: list[dict]) -> RunSpec:
-    from sim.macro.policies import FAMILY_POLICY
-    pc = dict(spec.path_choice)
-    pol = {k: dict(v) for k, v in (spec.policy or {}).items()}
-    for a in actions:
-        if a["type"] == "set_path":
-            pc[f"{a['dc']}/{a['sku']}"] = a["path"]
-        elif a["type"] == "policy":
-            base = {**FAMILY_POLICY[a["family"]], **pol.get(a["family"], {})}
-            pol[a["family"]] = {**base, "z": base["z"] + a["dz"]}
-    return spec.model_copy(update={"path_choice": pc, "policy": pol or None})
+def _evidence(spec_json: str, seed: int) -> list[dict]:
+    from sim.optimize.optimizer import evidence_run
+    return evidence_run(RunSpec.model_validate_json(spec_json), seed)
+
+
+class Weights(BaseModel):
+    service: float = Field(optimizer.DEFAULT_WEIGHTS["service"], ge=0, le=10)
+    risk: float = Field(optimizer.DEFAULT_WEIGHTS["risk"], ge=0, le=10)
+    cost: float = Field(optimizer.DEFAULT_WEIGHTS["cost"], ge=0, le=10)
+    co2: float = Field(optimizer.DEFAULT_WEIGHTS["co2"], ge=0, le=10)
 
 
 @router.post("/api/v1/scenarios/{sid}/optimize", status_code=202)
-async def optimize(sid: str, request: Request, n: int = 100, who: Identity = Depends(require("planner"))) -> dict:
+async def optimize(sid: str, request: Request, n: int = 100, lam: float = 1.0,
+                   who: Identity = Depends(require("planner"))) -> dict:
+    """Generate candidate plans (reroute, switch sourcing, reallocate, expedite, buffer, combinations) and evaluate
+    each with Monte Carlo on the scenario's seeds. Ranked plans appear on GET /scenarios/{id} as `plans`."""
     ctx: Ctx = request.app.state.ctx
     st = await ctx.scenarios.get(sid)
     if st is None:
@@ -308,19 +331,25 @@ async def optimize(sid: str, request: Request, n: int = 100, who: Identity = Dep
     spec = RunSpec.model_validate(st["spec"])
     if not spec.scenarios:
         raise HTTPException(422, "nothing to optimise: the scenario has no disruption")
-    cands = candidate_plans(ctx, spec)
+    if st["status"] != "done":
+        raise HTTPException(409, "the scenario is still running: optimise once its result is in")
+    result = await ctx.scenarios.result(st)
+    cands = await asyncio.to_thread(optimizer.candidates, ctx.twin.twin, list(spec.scenarios), result, _levels(ctx), lam)
     jobs = []
-    for c in cands:
-        pst = await ctx.scenarios.submit(plan_spec(spec, c["actions"]), n, "plan", who.user, parent=sid)
-        jobs.append({**c, "job": pst["id"]})
-    t = asyncio.create_task(_collect_plans(ctx, sid, jobs))
+    for i, c in enumerate(cands):
+        pst = await ctx.scenarios.submit(optimizer.apply_to_spec(spec, c["actions"]), n, "plan", who.user, parent=sid)
+        jobs.append({**c, "job": pst["id"], "id": f"{sid}-P{i}"})
+    await ctx.redis.delete(f"scn:plans:{sid}")
+    t = asyncio.create_task(_collect_plans(ctx, sid, spec, jobs))
     ctx.scenarios.tasks.add(t)
     t.add_done_callback(ctx.scenarios.tasks.discard)
-    return {"scenario": sid, "candidates": [{"name": j["name"], "job": j["job"], "actions": j["actions"]} for j in jobs]}
+    audit(ctx.engine, who.user, "scenario.optimize", sid, {"candidates": [c["name"] for c in cands], "n": n})
+    return {"scenario": sid, "candidates": [{"id": j["id"], "name": j["name"], "kind": j["kind"], "job": j["job"],
+                                             "actions": j["actions"]} for j in jobs]}
 
 
-async def _collect_plans(ctx: "Ctx", sid: str, jobs: list[dict]) -> None:
-    results = {}
+async def _collect_plans(ctx: Ctx, sid: str, spec: RunSpec, jobs: list[dict]) -> None:
+    results: dict[str, dict | None] = {}
     while len(results) < len(jobs):
         for j in jobs:
             if j["job"] in results:
@@ -332,48 +361,131 @@ async def _collect_plans(ctx: "Ctx", sid: str, jobs: list[dict]) -> None:
                 results[j["job"]] = None
         await asyncio.sleep(0.25)
     plans = []
-    for i, j in enumerate(jobs):
+    for j in jobs:
         r = results[j["job"]]
-        if r is None:
-            continue
-        k = r["kpis"]
-        plans.append({"id": f"{sid}-P{i}", "name": j["name"], "actions": j["actions"], "job": j["job"],
-                      "service": k["fill_rate"]["p50"], "service_p10": k["fill_rate"]["p10"], "otif": k["otif"]["p50"],
-                      "cost_lakh": k["cost_total"]["p50"] / 1e5, "co2_t": k["co2_t"]["p50"],
-                      "backorders_p90": k["units_backordered"]["p90"],
-                      "stockout_p": max(r["stockout_prob"].values()) if r["stockout_prob"] else 0.0})
-    if plans:
-        cmin = min(p["cost_lakh"] for p in plans)
-        cmax = max(p["cost_lakh"] for p in plans)
-        for p in plans:  # service first, then cost; CO2 as a tie-breaker (weights adjustable in Phase 7)
-            cost_n = (p["cost_lakh"] - cmin) / (cmax - cmin) if cmax > cmin else 0.0
-            p["score"] = round(0.7 * p["service_p10"] + 0.25 * (1 - cost_n) + 0.05 * (1 - p["stockout_p"]), 4)
-        plans.sort(key=lambda p: -p["score"])
+        if r is not None:
+            plans.append({"id": j["id"], "name": j["name"], "kind": j["kind"], "actions": j["actions"], "job": j["job"],
+                          **optimizer.metrics(r)})
+    if not plans:
+        return
+    optimizer.rank(plans)
+    # explanations: one evidence replication per plan (event log on), in the worker pool
+    loop = asyncio.get_running_loop()
+    specs = {p["id"]: optimizer.apply_to_spec(spec, p["actions"]).model_dump_json() for p in plans}
+    try:
+        evs = await asyncio.gather(*[loop.run_in_executor(ctx.scenarios._pool(), _evidence, specs[p["id"]], spec.seed)
+                                     for p in plans])
+        base = next((p for p in plans if p["kind"] == "baseline"), None)
+        base_ev = evs[plans.index(base)] if base else []
+        for p, ev in zip(plans, evs):
+            p["explanation"] = optimizer.explain(p, base, ev, base_ev, ctx.net)
+    except Exception as e:  # explanations are a courtesy: never lose the ranked plans over them
+        log.warning("plan explanations failed: %s", e)
     await ctx.redis.set(f"scn:plans:{sid}", orjson.dumps(plans), ex=ctx.settings.cache_ttl_s)
     for p in plans:
         await ctx.redis.set(f"plan:{p['id']}", orjson.dumps(p), ex=ctx.settings.cache_ttl_s)
         execute(ctx.engine, "insert into plans(id, scenario_id, actions, kpis, score) values (:id, :s, cast(:a as jsonb), "
-                "cast(:k as jsonb), :sc) on conflict (id) do update set kpis = excluded.kpis, score = excluded.score",
+                "cast(:k as jsonb), :sc) on conflict (id) do update set actions = excluded.actions, kpis = excluded.kpis, "
+                "score = excluded.score",
                 id=p["id"], s=sid, a=orjson.dumps(p["actions"]).decode(),
-                k=orjson.dumps({x: p[x] for x in ("service", "otif", "cost_lakh", "co2_t", "stockout_p")}).decode(), sc=p["score"])
+                k=orjson.dumps({x: p[x] for x in ("service", "otif", "cost_lakh", "co2_t", "cvar95_lakh", "stockout_p", "pareto")}).decode(),
+                sc=p["score"])
     await ctx.redis.publish(f"scn:progress:{sid}", orjson.dumps({"id": sid, "status": "done", "plans": len(plans)}))
+
+
+@router.get("/api/v1/scenarios/{sid}/plans")
+async def ranked_plans(sid: str, request: Request, service: float = optimizer.DEFAULT_WEIGHTS["service"],
+                       risk: float = optimizer.DEFAULT_WEIGHTS["risk"], cost: float = optimizer.DEFAULT_WEIGHTS["cost"],
+                       co2: float = optimizer.DEFAULT_WEIGHTS["co2"]) -> dict:
+    """The evaluated plans re-ranked with the planner's weights (Pareto front + weighted score)."""
+    w = Weights(service=service, risk=risk, cost=cost, co2=co2)
+    raw = await request.app.state.ctx.redis.get(f"scn:plans:{sid}")
+    if raw is None:
+        raise HTTPException(404, "no plans yet: POST /scenarios/{id}/optimize first")
+    return {"weights": w.model_dump(), "plans": optimizer.rank(orjson.loads(raw), w.model_dump())}
+
+
+@router.get("/api/v1/plans/{pid}")
+async def get_plan(pid: str, request: Request) -> dict:
+    raw = await request.app.state.ctx.redis.get(f"plan:{pid}")
+    if raw is None:
+        raise HTTPException(404, "unknown plan")
+    return orjson.loads(raw)
 
 
 @router.post("/api/v1/plans/{pid}/apply")
 async def apply_plan(pid: str, request: Request, who: Identity = Depends(require("planner"))) -> dict[str, Any]:
+    """Human-approved apply: push the plan's actions into the live twin (routes, transfers, policy buffers)."""
     ctx: Ctx = request.app.state.ctx
     raw = await ctx.redis.get(f"plan:{pid}")
     if raw is None:
         raise HTTPException(404, "unknown plan")
     plan = orjson.loads(raw)
     acks = []
-    for a in plan["actions"]:
-        if a["type"] == "set_path":
-            acks.append(ctx.twin.apply({"type": "set_path", "dc": a["dc"], "sku": a["sku"], "path": a["path"]}))
-        elif a["type"] == "policy":
-            acks.append(ctx.twin.apply({"type": "policy_buffer", "family": a["family"], "dz": a["dz"]}))
-    audit(ctx.engine, who.user, "plan.apply", pid, {"actions": plan["actions"], "role": who.role})
+    for ev in optimizer.to_twin_events(plan["actions"]):
+        try:
+            acks.append(ctx.twin.apply(ev))
+        except ValueError as e:  # e.g. a donor DC closed since the plan was made: apply the rest, report this one
+            acks.append({"ok": False, "type": ev["type"], "error": str(e)})
+    audit(ctx.engine, who.user, "plan.apply", pid, {"actions": plan["actions"], "role": who.role, "acks": acks})
     execute(ctx.engine, "update plans set applied_at = now(), applied_by = :u where id = :id", u=who.user, id=pid)
-    ctx.live.alert("ai", f"Plan applied · {plan['name']}", f"{len(plan['actions'])} actions pushed to the live twin by {who.user}",
+    ok = sum(1 for a in acks if a.get("ok"))
+    ctx.live.alert("ai", f"Plan applied · {plan['name']}", f"{ok}/{len(acks)} actions pushed to the live twin by {who.user}",
                    kind="plan")
     return {"plan": pid, "applied_by": who.user, "acks": acks}
+
+
+# ------------------------------------------------------------------------------ live disruptions
+class DisruptionRequest(BaseModel):
+    template: str | None = None
+    scenario: dict | None = Field(None, description="a scenario DSL object (instead of a template)")
+    start: str = Field("now", description='when it begins in the live twin: "now", "+6h", ...')
+    duration_h: float | None = Field(None, gt=0, le=24 * 90, description="override the template's duration")
+
+
+@router.post("/api/v1/disruptions", status_code=202, tags=["scenarios"])
+async def push_disruption(body: DisruptionRequest, request: Request, who: Identity = Depends(require("planner"))) -> dict:
+    """Push a scenario into the *live* twin (not just a what-if): its effect shows on the Control Tower map."""
+    ctx: Ctx = request.app.state.ctx
+    if body.template:
+        sc = template(body.template)
+    elif body.scenario:
+        sc = Scenario.model_validate(body.scenario)
+    else:
+        raise HTTPException(422, "give a template or a scenario")
+    upd: dict[str, Any] = {"start": body.start}
+    if body.duration_h:
+        upd["duration_h"] = body.duration_h
+    sc = Scenario.model_validate({**sc.model_dump(mode="json"), **upd})
+    try:
+        ack = ctx.twin.apply({"type": "scenario", "scenario": sc})
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from None
+    did = uuid.uuid4().hex[:16]
+    execute(ctx.engine, "insert into disruptions(id, spec, start_ts, status) values (:id, cast(:s as jsonb), now(), 'active')",
+            id=did, s=sc.model_dump_json())
+    audit(ctx.engine, who.user, "disruption.push", sc.target, {"spec": orjson.loads(sc.model_dump_json()), "id": did})
+    ctx.live.alert("bad", f"Disruption pushed to the live twin · {sc.name or sc.type.value}",
+                   f"{sc.type.value} @ {sc.target} · {sc.duration_h:g} h · start {sc.start} · by {who.user}",
+                   node=sc.target if sc.target in ctx.net.nodes else None, kind="disruption")
+    return {"id": did, "scenario": orjson.loads(sc.model_dump_json()), "twin": ack,
+            "impact": impact(ctx, RunSpec(days=30, scenarios=[sc]))}
+
+
+@router.get("/api/v1/disruptions", tags=["scenarios"])
+async def list_disruptions(request: Request) -> list[dict]:
+    """Disruptions active in the live twin (scenario pushes, live events and random outages)."""
+    ctx: Ctx = request.app.state.ctx
+    return ctx.twin.snapshot()["effects"] if ctx.twin else []
+
+
+@router.delete("/api/v1/disruptions/{effect_id}", tags=["scenarios"])
+async def end_disruption(effect_id: str, request: Request, who: Identity = Depends(require("planner"))) -> dict:
+    ctx: Ctx = request.app.state.ctx
+    try:
+        ack = ctx.twin.apply({"type": "disruption_end", "id": effect_id})
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from None
+    audit(ctx.engine, who.user, "disruption.end", effect_id, {})
+    ctx.live.alert("good", "Disruption ended", f"{effect_id} lifted in the live twin by {who.user}", kind="disruption")
+    return ack

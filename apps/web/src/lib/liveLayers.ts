@@ -8,7 +8,7 @@
 import { ArcLayer, ColumnLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
 import { TripsLayer } from "@deck.gl/geo-layers";
 import type { Layer } from "@deck.gl/core";
-import type { ApiLane, ApiNetwork, ApiNode } from "./api";
+import type { ApiLane, ApiNetwork, ApiNode, Impact } from "./api";
 import { positionAt, type LiveInv, type LiveVehicle } from "./live";
 import { RGB } from "./theme";
 
@@ -20,8 +20,8 @@ export type LiveStatus = "ok" | "warn" | "bad" | "zone";
 export function nodeLiveStatus(n: ApiNode, inventory: Record<string, LiveInv>, ports: Record<string, { status: string }>): LiveStatus {
   if (n.type === "zone") return "zone";
   const port = ports[n.id]?.status ?? n.status;
-  if (port === "closed") return "bad";
-  if (port === "degraded") return "warn";
+  if (port === "closed" || n.twin_status === "closed") return "bad";          // observed, or disrupted in the live twin
+  if (port === "degraded" || n.twin_status === "degraded") return "warn";
   let st: LiveStatus = "ok";
   for (const [k, v] of Object.entries(inventory)) {
     if (!k.startsWith(`${n.id}/`)) continue;
@@ -44,6 +44,8 @@ export interface LiveLayerState {
   selectedNode: string | null;
   version: number;                    // bumps when inventory / ports / network change (updateTriggers)
   zoom?: number;                      // current map zoom: national-scale bars are hidden at city zoom
+  impact?: Impact | null;             // Scenario Lab: what the what-if disrupts (drawn in red)
+  risk?: Record<string, number>;      // Scenario Lab: node -> added stock-out probability (amber -> red)
   trailSeconds?: number;
 }
 
@@ -51,6 +53,10 @@ export function liveLayers(s: LiveLayerState): Layer[] {
   const L = s.layers;
   const byId = new Map(s.net.nodes.map((n) => [n.id, n]));
   const status = new Map(s.net.nodes.map((n) => [n.id, nodeLiveStatus(n, s.inventory, s.ports)]));
+  if (s.impact) {  // a what-if colours what it disrupts and the DCs it puts at risk
+    for (const [id, f] of Object.entries(s.impact.nodes)) status.set(id, f < 0.25 ? "bad" : "warn");
+    for (const [id, p] of Object.entries(s.risk ?? {})) if (p > 0.005 && status.get(id) !== "bad") status.set(id, p >= 0.2 ? "bad" : "warn");
+  }
   const out: Layer[] = [];
 
   if (L.lanes) {
@@ -59,14 +65,15 @@ export function liveLayers(s: LiveLayerState): Layer[] {
       data: s.net.lanes,
       getSourcePosition: (d) => { const a = byId.get(d.from_id)!; return [a.lon, a.lat]; },
       getTargetPosition: (d) => { const b = byId.get(d.to_id)!; return [b.lon, b.lat]; },
-      getSourceColor: (d) => laneColor(d, status, 0.55),
-      getTargetColor: (d) => laneColor(d, status, 0.9),
-      getWidth: (d) => (d.live_mult > 1.02 || status.get(d.to_id) === "bad" ? 2.4 : 1.1),
+      getSourceColor: (d) => laneColor(d, status, 0.55, s.impact),
+      getTargetColor: (d) => laneColor(d, status, 0.9, s.impact),
+      getWidth: (d) => (d.live_mult > 1.02 || d.extra_mult > 1.02 || (s.impact && d.id in s.impact.lanes) || status.get(d.to_id) === "bad"
+        || status.get(d.from_id) === "bad" ? 2.6 : 1.1),
       getHeight: (d) => ({ road: 0.15, rail: 0.25, sea: 0.5, air: 0.9 })[d.mode],
       greatCircle: true,
       widthUnits: "pixels",
       pickable: true,
-      updateTriggers: { getSourceColor: s.version, getTargetColor: s.version, getWidth: s.version },
+      updateTriggers: { getSourceColor: [s.version, s.impact], getTargetColor: [s.version, s.impact], getWidth: [s.version, s.impact] },
       parameters: { depthCompare: "always" },
     }));
   }
@@ -138,7 +145,7 @@ export function liveLayers(s: LiveLayerState): Layer[] {
       stroked: true, filled: false,
       getLineColor: (d) => withA(statusRGB[status.get(d.id)!], 255 * (1 - phase)),
       lineWidthMinPixels: 2,
-      updateTriggers: { getRadius: s.pulse, getLineColor: [s.pulse, s.version] },
+      updateTriggers: { getRadius: s.pulse, getLineColor: [s.pulse, s.version, s.impact, s.risk] },
       parameters: { depthCompare: "always" },
     }));
     out.push(new ScatterplotLayer<ApiNode>({
@@ -152,7 +159,7 @@ export function liveLayers(s: LiveLayerState): Layer[] {
       getLineColor: (d) => (s.selectedNode === d.id ? [255, 255, 255, 255] : [7, 11, 20, 255]),
       lineWidthMinPixels: 2,
       pickable: true,
-      updateTriggers: { getFillColor: s.version, getRadius: s.selectedNode, getLineColor: s.selectedNode },
+      updateTriggers: { getFillColor: [s.version, s.impact, s.risk], getRadius: s.selectedNode, getLineColor: s.selectedNode },
       parameters: { depthCompare: "always" },
     }));
     out.push(new TextLayer<ApiNode>({
@@ -177,7 +184,8 @@ export function liveLayers(s: LiveLayerState): Layer[] {
   return out;
 }
 
-function laneColor(l: ApiLane, status: Map<string, LiveStatus>, a: number): RGBA {
+function laneColor(l: ApiLane, status: Map<string, LiveStatus>, a: number, impact?: Impact | null): RGBA {
+  if ((impact && l.id in impact.lanes) || l.extra_mult > 1.02) return withA(RGB.bad, 230 * a);
   if (status.get(l.to_id) === "bad" || status.get(l.from_id) === "bad") return withA(RGB.bad, 200 * a);
   if (l.live_mult > 1.02) return withA(RGB.warn, 220 * a);
   return withA(RGB.ok, 150 * a);

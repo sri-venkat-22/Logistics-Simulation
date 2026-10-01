@@ -26,7 +26,8 @@ import zlib
 from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 import numpy as np
 import simpy
@@ -35,7 +36,7 @@ import simpy.rt
 from sim.macro.disruptions import CLOSED_BELOW, Effect, build_effect
 from sim.macro.entities import (NODE_HANDLING_H, DemandZone, Lane, Order, Port, Shipment, Supplier, Warehouse)
 from sim.macro.kpis import compute_kpis
-from sim.macro.network import Network
+from sim.macro.network import Network, Path_
 from sim.macro.policies import FAMILY_POLICY, DynamicSSPolicy, Policy, default_policy
 from sim.paths import HYDERABAD
 from sim.scenarios.dsl import Scenario
@@ -87,6 +88,8 @@ class Twin:
         self._eff_ids = itertools.count(1)
         self.pending_city: dict[str, simpy.Event] = {}
         self.path_choice: dict[tuple[str, str], int] = {}
+        self.custom_paths: dict[tuple[str, str], Path_] = {}   # optimiser routes (set_route), override path_choice
+        self.forecaster: Any = None  # an ML demand forecaster (ml.forecast) for the dynamic (s,S) policies
 
         self.k: defaultdict[str, float] = defaultdict(float)
         self.k_sku: defaultdict[str, defaultdict[str, float]] = defaultdict(lambda: defaultdict(float))
@@ -150,8 +153,43 @@ class Twin:
         return self._zones_served[(dc, sku)]
 
     def path(self, dc: str, sku: str):
+        custom = self.custom_paths.get((dc, sku))
+        if custom is not None:
+            return custom
         opts = self.net.replenishment[(dc, sku)]
         return opts[min(self.path_choice.get((dc, sku), 0), len(opts) - 1)]
+
+    def sku_sources(self, sku: str) -> set[str]:
+        """Suppliers / plants that make a SKU (the sources of any of its sourcing paths)."""
+        return {p.source for (_, s), paths in self.net.replenishment.items() if s == sku for p in paths}
+
+    def lane_chain(self, lanes: list[str], start: str | None = None, end: str | None = None) -> list[str]:
+        """Validate a contiguous lane sequence and return its node sequence."""
+        if not lanes:
+            raise ValueError("empty route")
+        nodes = []
+        for i, lid in enumerate(lanes):
+            if lid not in self.net.lanes:
+                raise ValueError(f"unknown lane {lid!r}")
+            ln = self.net.lanes[lid]
+            if i == 0:
+                nodes.append(ln.from_id)
+            elif ln.from_id != nodes[-1]:
+                raise ValueError(f"lane {lid} does not continue from {nodes[-1]}")
+            nodes.append(ln.to_id)
+        if start is not None and nodes[0] != start:
+            raise ValueError(f"route starts at {nodes[0]}, expected {start}")
+        if end is not None and nodes[-1] != end:
+            raise ValueError(f"route ends at {nodes[-1]}, expected {end}")
+        if any(self.net.nodes[n].type == "zone" for n in nodes[:-1]) or len(set(nodes)) != len(nodes):
+            raise ValueError("route passes through a demand zone or revisits a node")
+        return nodes
+
+    def _transfer(self, shp: Shipment):
+        yield from self.move(shp)
+        yield from self.warehouses[shp.dest].receive(shp.sku, shp.qty)
+        self.log("receipt", dc=shp.dest, sku=shp.sku, qty=round(shp.qty), shipment=shp.id, transfer=True,
+                 lead_h=round(self.env.now - shp.created_h, 2))
 
     # ================================================================ effects
     def _f(self, table: str, key) -> float:
@@ -658,8 +696,42 @@ class Twin:
             if key not in self.net.replenishment or not 0 <= int(event["path"]) < len(self.net.replenishment[key]):
                 raise ValueError(f"no path {event.get('path')} for {key}")
             self.path_choice[key] = int(event["path"])
+            self.custom_paths.pop(key, None)
             self.log("set_path", dc=key[0], sku=key[1], path=int(event["path"]))
             return {"ok": True, "type": kind}
+        if kind == "set_route":  # optimiser reroute: any contiguous lane sequence from a source of the SKU to the DC
+            key = (event["dc"], event["sku"])
+            if key not in self.net.replenishment:
+                raise ValueError(f"{key} is not a stocked DC x SKU")
+            nodes = self.lane_chain(list(event["lanes"]), end=key[0])
+            if nodes[0] not in self.sku_sources(key[1]):
+                raise ValueError(f"{nodes[0]} does not make {key[1]}")
+            if self.net.skus[key[1]].cold_chain and any(self.net.nodes[n].type == "dc" and not self.net.nodes[n].cold_chain
+                                                        for n in nodes):
+                raise ValueError("cold-chain SKU routed through a DC without cold storage")
+            lead = sum(self.net.lanes[l].lt_mean_h for l in event["lanes"])
+            self.custom_paths[key] = Path_(nodes[0], tuple(nodes), tuple(event["lanes"]), lead)
+            self.log("set_route", dc=key[0], sku=key[1], lanes=list(event["lanes"]), source=nodes[0])
+            return {"ok": True, "type": kind, "nodes": nodes}
+        if kind == "transfer":  # lateral transshipment: move stock now from one DC to another along lanes
+            src, dst, sku, qty = event["from"], event["to"], event["sku"], float(event["qty"])
+            if src not in self.warehouses or dst not in self.warehouses or sku not in self.warehouses[src].stock \
+                    or sku not in self.warehouses[dst].stock:
+                raise ValueError(f"both {src} and {dst} must stock {sku}")
+            nodes = self.lane_chain(list(event["lanes"]), start=src, end=dst)
+            if not self.is_open(src):
+                raise ValueError(f"{src} is closed")
+            wh = self.warehouses[src]
+            amt = float(min(qty, math.floor(wh.level(sku)))) if not wh.backlog[sku] else 0.0
+            if amt <= 0:
+                return {"ok": True, "type": kind, "qty": 0.0}
+            wh.stock[sku].get(amt)
+            wh.after_withdrawal(sku)
+            self.warehouses[dst].on_order[sku] += amt
+            shp = self.new_shipment("transfer", sku, amt, nodes, event["lanes"])
+            self.log("transfer", shipment=shp.id, src=src, dc=dst, sku=sku, qty=round(amt), lanes=list(event["lanes"]))
+            self.env.process(self._transfer(shp))
+            return {"ok": True, "type": kind, "qty": amt, "shipment": shp.id}
         if kind == "policy_buffer":  # plan action: raise the safety factor of a SKU family's forecast policies
             fam, dz = event["family"], float(event["dz"])
             if not -2 <= dz <= 3:

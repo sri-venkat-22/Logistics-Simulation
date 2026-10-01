@@ -21,7 +21,7 @@ Telemetry (envelope + payload per sim/reality/schemas.py, HMAC-signed per device
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -147,7 +147,7 @@ class RealityEmulator:
     def _perturb(self, p: Perturbations) -> None:
         twin = self.twin
         for lid, lane in twin.lanes.items():
-            if lane.spec.mode == "road":
+            if lane.spec.mode == "road" and not lane.spec.transfer_only:
                 b = 1.0 + float(self.rng.uniform(0, p.lane_bias_max))
                 lane.live_mult *= b
                 self.truth_log.append({"kind": "lane_bias", "lane": lid, "multiplier": round(b, 4), "t_h": 0.0})
@@ -155,7 +155,7 @@ class RealityEmulator:
         self.env.process(self._demand_drift(p))
 
     def _incidents(self, p: Perturbations):
-        lanes = [l for l, v in self.twin.lanes.items() if v.spec.mode in ("road", "rail")]
+        lanes = [l for l, v in self.twin.lanes.items() if v.spec.mode in ("road", "rail") and not v.spec.transfer_only]
         while True:
             yield self.env.timeout(float(self.rng.exponential(24.0 / p.incident_rate_per_day)))
             lid = str(self.rng.choice(lanes))

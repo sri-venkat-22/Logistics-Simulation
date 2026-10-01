@@ -12,3 +12,8 @@ docs/**/.print.html
 data/dataco/*.csv
 sim/micro/hyderabad/osm/
 data/benchmark/telemetry.jsonl.gz
+.env
+.env.prod
+.idea/
+coverage.xml
+.coverage

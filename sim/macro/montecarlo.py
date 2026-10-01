@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sim.scenarios.dsl import Scenario
 
 SCALARS = ("fill_rate", "otif", "backorder_units_end", "units_backordered", "inventory_days", "co2_t", "cost_total",
-           "cost_transport", "cost_holding", "cost_penalty", "stockout_episodes")
+           "cost_transport", "cost_holding", "cost_penalty", "stockout_episodes", "shortfall_value", "avg_lead_h")
 
 
 class RunSpec(BaseModel):
@@ -40,6 +40,8 @@ class RunSpec(BaseModel):
     random_failures: bool = True
     calibration: bool = True            # SUMO-calibrated Hyderabad lanes (if built)
     path_choice: dict[str, int] = Field(default_factory=dict)  # "DC/SKU" -> sourcing path index (plan actions)
+    routes: dict[str, list[str]] = Field(default_factory=dict)  # "DC/SKU" -> lane ids (optimiser reroutes)
+    transfers: list[dict] = Field(default_factory=list)       # [{"from", "to", "sku", "qty", "lanes", "at_h"}]
 
     def canonical_json(self) -> str:
         d = self.model_dump(mode="json")
@@ -73,10 +75,18 @@ def run_one(spec: RunSpec, seed: int) -> dict:
     for key, idx in spec.path_choice.items():
         dc, sku = key.split("/")
         twin.apply({"type": "set_path", "dc": dc, "sku": sku, "path": idx})
+    for key, lanes in spec.routes.items():
+        dc, sku = key.split("/")
+        twin.apply({"type": "set_route", "dc": dc, "sku": sku, "lanes": lanes})
+    for t in spec.transfers:
+        twin.env.process(_at(twin, t.get("at_h", 0.0), {"type": "transfer", **{k: v for k, v in t.items() if k != "at_h"}}))
     k = twin.run(spec.days)
     twin.record_series()
     c = k["cost_inr"]
-    scalars = {"fill_rate": k["fill_rate"], "otif": k["otif"], "backorder_units_end": k["backorder_units_end"],
+    net_skus = twin.net.skus
+    shortfall = sum(v["units_demanded"] * (1 - v["fill_rate"]) * net_skus[s].unit_value for s, v in k["per_sku"].items())
+    leads = [o.done_h - o.created_h for o in twin.orders if o.done_h is not None and o.created_h >= twin.stats_since_h]
+    scalars = {"shortfall_value": shortfall, "avg_lead_h": sum(leads) / len(leads) if leads else 0.0,"fill_rate": k["fill_rate"], "otif": k["otif"], "backorder_units_end": k["backorder_units_end"],
                "units_backordered": k["units_backordered"], "inventory_days": k["inventory_days"], "co2_t": k["co2_t"],
                "cost_total": c["total"], "cost_transport": c["transport"], "cost_holding": c["holding"],
                "cost_penalty": c["penalty"], "stockout_episodes": k["stockout_episodes"]}
@@ -91,15 +101,23 @@ def run_one(spec: RunSpec, seed: int) -> dict:
     }
 
 
+def _at(twin, t_h: float, event: dict):
+    yield twin.env.timeout(max(0.0, t_h - twin.env.now))
+    twin.apply(event)
+
+
 def _job(args: tuple[str, int]) -> dict:
     spec_json, seed = args
     return run_one(RunSpec.model_validate_json(spec_json), seed)
 
 
 def _band(x) -> dict:
+    """P10 / P50 / P90, mean and CVaR95 (the mean of the worst 5 %, i.e. of the values at or above P95)."""
     a = np.asarray(x, dtype=float)
-    p10, p50, p90 = np.percentile(a, [10, 50, 90])
-    return {"p10": float(p10), "p50": float(p50), "p90": float(p90), "mean": float(a.mean())}
+    p10, p50, p90, p95 = np.percentile(a, [10, 50, 90, 95])
+    tail = a[a >= p95]
+    return {"p10": float(p10), "p50": float(p50), "p90": float(p90), "mean": float(a.mean()),
+            "cvar95": float(tail.mean()) if tail.size else float(p95)}
 
 
 def summarize(spec: RunSpec, runs: list[dict]) -> dict:

@@ -1,0 +1,10 @@
+{
+  "_doc": "Advisories accepted after review. scripts/audit.mjs fails CI on any other high / critical advisory. Re-review when the dependency moves.",
+  "advisories": {
+    "GHSA-jrc7-96c5-q579": {
+      "package": "maplibre-gl",
+      "reason": "XSS via DOM.sanitize() in the attribution control, exploitable only with untrusted style attribution strings. AEGIS loads two fixed basemap styles (CARTO, OpenFreeMap) and never user-supplied styles, and the production CSP (script-src 'self', no 'unsafe-inline') blocks the inline event-handler payload. The fix (maplibre-gl >= 6.4.1) breaks @deck.gl/mapbox 9.4 interleaved rendering (custom-layer API change); upgrade together with deck.gl 9.5.",
+      "reviewed": "2026-10-01"
+    }
+  }
+}

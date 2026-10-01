@@ -6,7 +6,9 @@ import { Globe2, Map as MapIcon, Building2, Radio, X } from "lucide-react";
 import clsx from "clsx";
 import type { MapRef } from "react-map-gl/maplibre";
 import { Badge, Bar, Button, Dot, Eyebrow, Glass, KpiCard } from "../components/ui";
-import { api, type ApiNode } from "../lib/api";
+import { api, endDisruption, type ApiNode } from "../lib/api";
+import { toast } from "sonner";
+import { Zap } from "lucide-react";
 import { useLive, type LiveAlert } from "../lib/live";
 import { useAegis } from "../lib/store";
 import { C, VIEW, nodeTypeLabel, sevColor } from "../lib/theme";
@@ -77,6 +79,7 @@ interface NodeDetail {
   outbound: { id: string; sku: string; qty: number; mode: string; to: string; status: string; eta_leg_h: number }[];
   tts_ttr: { tts_d: number | null; ttr_d: number | null; exposed: boolean | null; rei: number | null };
   port: { status: string; anchorage: number; berth_queue: number; berths_busy: number; berths_total: number } | null;
+  twin: { status: string; anchorage?: number; berth_queue?: number; customs?: number } | null;
 }
 
 export function LiveNodePanel({ id }: { id: string }) {
@@ -119,6 +122,14 @@ export function LiveNodePanel({ id }: { id: string }) {
               ))}
             </div>
             <p className="text-[11px] text-ink-3 mt-2">Simchi-Levi stress test (docs/sim/resilience.json) · REI {d.tts_ttr.rei?.toFixed(2)}</p>
+          </section>
+        )}
+        {d.twin && d.twin.status !== "up" && (
+          <section>
+            <div className="flex items-center justify-between"><Eyebrow>Live twin</Eyebrow><Badge sev={d.twin.status === "closed" ? "bad" : "warn"}>{d.twin.status}</Badge></div>
+            <div className="num mt-2 text-[12px] text-ink-2">
+              {d.twin.anchorage !== undefined ? `${d.twin.anchorage} shipments at anchorage · ${d.twin.berth_queue} waiting for a berth · ${d.twin.customs} in customs` : "capacity reduced by an active disruption"}
+            </div>
           </section>
         )}
         {d.port && (
@@ -228,5 +239,32 @@ export function LiveStatusBar({ fps }: { fps: number }) {
         <Button variant="ghost" onClick={() => window.open(`${(import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000"}/docs`, "_blank")}>API docs</Button>
       </div>
     </Glass>
+  );
+}
+
+/** Disruptions active in the live twin (pushed from the Scenario Lab or live events): what the map is showing in red. */
+export function DisruptionBanner() {
+  const { disruptions, network, refreshNetwork } = useLive();
+  const shown = disruptions.filter((d) => d.kind !== "random_failure" && d.kind !== "hidden");
+  if (!shown.length) return null;
+  const name = (id: string) => network?.nodes.find((n) => n.id === id)?.name.split(" (")[0] ?? id;
+  return (
+    <div className="absolute left-1/2 -translate-x-1/2 top-[150px] z-20 flex flex-col gap-2 w-[440px]">
+      {shown.map((d) => (
+        <motion.div key={d.id} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          className="glass !bg-[#1a0c10]/92 border-bad/50 px-3.5 py-2.5 flex items-center gap-3">
+          <Zap size={16} className="text-bad shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[12.5px] text-ink font-medium truncate">{d.label} · live twin</div>
+            <div className="num text-[11px] text-ink-3 truncate">
+              {d.type} @ {name(d.target)}{d.nodes.length ? ` · ${d.nodes.length} node(s) down` : ""}{d.lanes.length ? ` · ${d.lanes.length} lane(s) slowed` : ""}
+              {d.end_h !== null ? ` · ends in ${Math.max(0, d.end_h - (useLive.getState().kpis?.twin?.t_h ?? d.start_h)).toFixed(1)} h` : ""}
+            </div>
+          </div>
+          <Button variant="ghost" onClick={() => endDisruption(d.id).then(() => { toast.success("Disruption lifted"); void refreshNetwork(); })
+            .catch((e) => toast.error("Could not end it", { description: String(e) }))}>End</Button>
+        </motion.div>
+      ))}
+    </div>
   );
 }

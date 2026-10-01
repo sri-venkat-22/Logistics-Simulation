@@ -22,6 +22,7 @@ import orjson
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from services.api.app import metrics as M
+from services.api.app.auth import ws_allowed
 
 if TYPE_CHECKING:
     from services.api.app.main import Ctx
@@ -59,7 +60,7 @@ class Client:
 
 
 class Broadcaster:
-    def __init__(self, ctx: "Ctx"):
+    def __init__(self, ctx: Ctx):
         self.ctx = ctx
         self.clients: set[Client] = set()
         self.seq = 0
@@ -131,6 +132,9 @@ class Broadcaster:
 async def live_ws(ws: WebSocket) -> None:
     ctx: Ctx = ws.app.state.ctx
     fmt = "json" if ws.query_params.get("format") == "json" else "msgpack"
+    if not await ws_allowed(ws):
+        await ws.close(code=1008)  # policy violation: missing / invalid token
+        return
     await ws.accept()
     client = Client(ws, fmt)
     b = ctx.broadcaster

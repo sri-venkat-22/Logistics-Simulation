@@ -14,7 +14,7 @@ import { useAegis } from "../lib/store";
 import { useLive, vehicles as liveVehicles, type LiveVehicle } from "../lib/live";
 import { liveLayers } from "../lib/liveLayers";
 import type { ApiLane, ApiNode } from "../lib/api";
-import { CameraPresets, LiveAlertFeed, LiveKpiStrip, LiveNodePanel, LiveStatusBar } from "./ControlTowerLive";
+import { CameraPresets, DisruptionBanner, LiveAlertFeed, LiveKpiStrip, LiveNodePanel, LiveStatusBar } from "./ControlTowerLive";
 import { C, VIEW, chartBase, nodeTypeLabel, modeLabel, sevColor } from "../lib/theme";
 
 const LAYER_LABELS: [string, string][] = [
@@ -286,6 +286,7 @@ function LiveTower() {
         }}
       />
       <LiveKpiStrip />
+      <DisruptionBanner />
       <CameraPresets mapRef={mapRef} />
       <LayerPanel />
       <AnimatePresence mode="wait">

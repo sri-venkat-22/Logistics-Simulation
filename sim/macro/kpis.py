@@ -34,7 +34,7 @@ EVIDENCE: dict[str, tuple[str, ...]] = {
 }
 
 
-def disruption_metrics(twin: "Twin") -> list[dict]:
+def disruption_metrics(twin: Twin) -> list[dict]:
     out = []
     now = twin.env.now
     for e in twin.effect_history:
@@ -79,7 +79,7 @@ def node_tts_ttr(disruptions: list[dict]) -> dict[str, dict]:
     return table
 
 
-def compute_kpis(twin: "Twin", days: float) -> dict:
+def compute_kpis(twin: Twin, days: float) -> dict:
     k, net = twin.k, twin.net
     end = twin.env.now
     days = max(days, 1e-9)

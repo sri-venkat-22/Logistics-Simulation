@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from geoalchemy2 import Geography
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, String, Table, Text,
+from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, LargeBinary, String, Table, Text,
                         func)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -202,3 +202,14 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[str] = mapped_column(ForeignKey("roles.name"))
     created_at: Mapped[datetime] = ts_col(server_default=func.now())
+
+
+class DeviceKeyRow(Base):
+    """Rotated per-device HMAC keys, pgcrypto-encrypted at rest (migration 0002)."""
+    __tablename__ = "device_keys"
+    source_id: Mapped[str] = mapped_column(String(96), primary_key=True)
+    key_enc: Mapped[bytes] = mapped_column(LargeBinary)
+    version: Mapped[int] = mapped_column(Integer)
+    rotated_at: Mapped[datetime] = ts_col()
+    prev_enc: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    prev_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

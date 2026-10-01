@@ -17,7 +17,7 @@ import hmac
 import json
 import time
 from collections import Counter
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import orjson
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -72,7 +72,7 @@ def loads(body: bytes):
         return json.loads(body)  # tolerate NaN / Infinity tokens so layer 1 can reject those messages one by one
 
 
-async def check_publisher(ctx: "Ctx", publisher: str | None, ts: str | None, nonce: str | None, sig: str | None,
+async def check_publisher(ctx: Ctx, publisher: str | None, ts: str | None, nonce: str | None, sig: str | None,
                           signed: bytes) -> str:
     key = ctx.settings.publishers.get(publisher or "")
     if key is None:
@@ -95,7 +95,7 @@ async def check_publisher(ctx: "Ctx", publisher: str | None, ts: str | None, non
     return publisher
 
 
-async def process(ctx: "Ctx", channel: str, msgs: list, publisher: str) -> dict:
+async def process(ctx: Ctx, channel: str, msgs: list, publisher: str) -> dict:
     t0 = time.perf_counter()
     if len(msgs) > ctx.settings.max_batch:
         raise HTTPException(413, f"batch larger than {ctx.settings.max_batch}")
@@ -168,7 +168,7 @@ async def ingest_stream(ws: WebSocket) -> None:
             for m in msgs:
                 kind = m.get("kind") if isinstance(m, dict) else None
                 by_ch.setdefault(CHANNEL.get(kind, "telemetry"), []).append(m)
-            total = {"accepted": 0, "rejected": 0, "reasons": Counter()}
+            total: dict[str, Any] = {"accepted": 0, "rejected": 0, "reasons": Counter()}
             for ch, part in by_ch.items():
                 r = await process(ctx, ch, part, pub)
                 total["accepted"] += r["accepted"]

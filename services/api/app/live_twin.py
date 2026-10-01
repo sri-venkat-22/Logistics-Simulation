@@ -11,6 +11,7 @@ import logging
 import queue
 import threading
 import time
+from collections import deque
 from concurrent.futures import Future
 from datetime import datetime
 
@@ -28,6 +29,7 @@ class LiveTwin:
         self.factor = factor
         self.twin = Twin(net, DemandModel(net), start, seed=seed, realtime_factor=factor or None, log_events=False)
         self.events: list[dict] = []
+        self.flows: deque[tuple[float, str, str]] = deque(maxlen=50_000)  # (t_h, node, "depart" | "asn") for L7
         self.twin.listeners.append(self._on_event)
         if warmup_h > 0:
             self.twin.fast_forward(warmup_h)
@@ -40,6 +42,10 @@ class LiveTwin:
         self.steps = 0
 
     def _on_event(self, e: dict) -> None:
+        if e["event"] == "depart" and e.get("kind") == "delivery":
+            self.flows.append((e["t_h"], self.net.lanes[e["lane"]].from_id, "depart"))
+        elif e["event"] == "asn":
+            self.flows.append((e["t_h"], e["source"], "asn"))
         if e["event"] in ("disruption_start", "disruption_end", "stockout_start", "stockout_end", "set_path", "apply",
                           "lane_multiplier"):
             self.events.append(e)
@@ -113,9 +119,18 @@ class LiveTwin:
             out[(dc, sku)] = self.twin.warehouses[dc].policy[sku].levels(self.twin, dc, sku, self.twin.env.now)
         return out
 
+    def levels(self, node: str, sku: str) -> tuple[float, float] | None:
+        """(reorder point, order-up-to level) of a DC x SKU, refreshed every simulated hour."""
+        return self._levels.get((node, sku))
+
     def reorder_point(self, node: str, sku: str) -> float | None:
         lv = self._levels.get((node, sku))
         return lv[0] if lv else None
+
+    def flow_count(self, node: str, kind: str, hours: float) -> int:
+        """Twin-predicted flow events at a node in the last `hours` of twin time (L7 flow divergence)."""
+        t0 = self.twin.env.now - hours
+        return sum(1 for t, n, k in list(self.flows) if t >= t0 and n == node and k == kind)
 
     def kpis(self) -> dict:
         s = self.snapshot()
