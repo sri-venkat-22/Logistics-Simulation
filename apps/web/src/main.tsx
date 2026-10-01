@@ -6,11 +6,14 @@ import App from "./App";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 
 function ErrorFallback({ error }: FallbackProps) {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorStack = error instanceof Error ? error.stack : '';
+  
   return (
     <div style={{color: 'red', padding: '20px', backgroundColor: 'black', height: '100vh'}}>
       <h2>Crash!</h2>
-      <pre>{error.message}</pre>
-      <pre>{error.stack}</pre>
+      <pre>{errorMessage}</pre>
+      <pre>{errorStack}</pre>
     </div>
   );
 }
