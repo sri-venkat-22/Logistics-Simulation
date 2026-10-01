@@ -55,7 +55,7 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >
         <DeckGLOverlay
-          layers={layers} interleaved onClick={onClick} getTooltip={getTooltip} pickingRadius={6}
+          layers={layers} interleaved={false} onClick={onClick} getTooltip={getTooltip} pickingRadius={6}
           onError={(e, layer) => { console.error(`[deck] ${layer?.id ?? "deck"}: ${e?.message ?? e}`); return true; }}
           onHover={(info) => {
             const canvas = inner.current?.getCanvas();
