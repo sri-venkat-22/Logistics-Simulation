@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/sri-venkat-22/Logistics-Simulation/actions/workflows/ci.yml/badge.svg)](https://github.com/sri-venkat-22/Logistics-Simulation/actions/workflows/ci.yml)
 
+**Live (HTTPS, sign-in required): https://thunderously-unwitty-chau.ngrok-free.dev** · title slide [`docs/pitch/title-slide.png`](docs/pitch/title-slide.png)
+
+> The interim public URL is an ngrok tunnel to the production stack (`scripts/live_tunnel.sh`). ngrok shows a one-time "You are about to visit" notice; choose *Visit Site*. Accounts are given on request (`AEGIS_ENV=prod` disables the demo users). The permanent home is a cloud VM + `.tech` domain deployed by CD ([runbook](docs/platform/PHASE8.md)).
+
 **New here? Start with the step-by-step [tutorial](docs/TUTORIAL.md).**
 
 > *See every shipment. Simulate every shock. Survive every attack.*
@@ -24,7 +28,7 @@ A two-scale digital twin of an Indian logistics network. SimPy runs the nation-w
 
 ### Prototype URL
 
-Not currently hosted. The Level-1 demo used a temporary Vercel deployment, which has since expired. To host it permanently, deploy it yourself (see [Deploying the prototype](#deploying-the-prototype)), or run it locally.
+The Level-1 demo used a temporary Vercel deployment, which has since expired. The live system (Level 3) is at the URL at the top of this page. To host the static prototype yourself, see [Deploying the prototype](#deploying-the-prototype), or run it locally.
 
 > Every number in the prototype is **seeded mock data** (`scripts/gen_mock.py`) and every screen says so with a *PROTOTYPE · MOCK DATA* badge. Geography is real: node coordinates are real sites, and Hyderabad road geometry comes from OpenStreetMap via OSRM.
 
@@ -143,7 +147,8 @@ Report with all measured results: [`docs/intelligence/PHASE7.md`](docs/intellige
 - **App and transport.** Caddy auto-HTTPS with HSTS + a strict CSP. Strict CORS, slowapi rate limits on Redis, request-size limits, SQLAlchemy-bound parameters only, and secrets from env / GitHub secrets. Prod refuses to start with default secrets.
 - **Audit log.** Logins, plan applies, chaos injections, key rotations and Copilot use go to `audit_log` and are shown in the Trust Center.
 - **CI** ([`ci.yml`](.github/workflows/ci.yml)): ruff, mypy, pytest with coverage, eslint, tsc, vitest, a Playwright demo smoke test, pip-audit, npm audit, Docker builds, `caddy validate` and Trivy.
-- **CD** ([`cd.yml`](.github/workflows/cd.yml)): on `main`, after a green CI run, images are pushed to GHCR. The workflow then runs `docker compose pull && up -d` over SSH on the VM (and optionally a Vercel deploy).
+- **CD** ([`cd.yml`](.github/workflows/cd.yml)): on `main`, after a green CI run, images are pushed to GHCR. The workflow then runs `docker compose pull && up -d` over SSH on the VM (and optionally a Vercel deploy). The prod stack includes the Reality Emulator as its data source.
+- **Live now**: `./scripts/live_tunnel.sh` runs the same production configuration on one machine behind an ngrok HTTPS tunnel: Caddy edge with the repo Caddyfile, `AEGIS_ENV=prod`, generated secrets and accounts in `.env.tunnel`, its own database.
 - Tests: `.venv/bin/python -m pytest` (119 tests) · `cd apps/web && npm test && npx playwright test`.
 
 ## Run the prototype locally

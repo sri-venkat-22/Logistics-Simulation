@@ -17,3 +17,5 @@ data/benchmark/telemetry.jsonl.gz
 .idea/
 coverage.xml
 .coverage
+.env.tunnel
+.tunnel-logs/

@@ -274,10 +274,10 @@ async def get_scenario(sid: str, request: Request, series: bool = True) -> dict:
 async def scenario_progress(ws: WebSocket, sid: str) -> None:
     ctx: Ctx = ws.app.state.ctx
     from services.api.app.auth import ws_allowed
+    await ws.accept()  # then close with 1008, so the browser sees the policy code
     if not await ws_allowed(ws):
         await ws.close(code=1008)
         return
-    await ws.accept()
     pubsub = ctx.redis.pubsub()
     await pubsub.subscribe(f"scn:progress:{sid}")
     try:

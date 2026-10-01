@@ -132,10 +132,10 @@ class Broadcaster:
 async def live_ws(ws: WebSocket) -> None:
     ctx: Ctx = ws.app.state.ctx
     fmt = "json" if ws.query_params.get("format") == "json" else "msgpack"
+    await ws.accept()  # accept first: a close before the handshake reaches the browser as a bare 1006
     if not await ws_allowed(ws):
-        await ws.close(code=1008)  # policy violation: missing / invalid token
+        await ws.close(code=1008)  # policy violation: missing / invalid token -> the UI asks the user to sign in
         return
-    await ws.accept()
     client = Client(ws, fmt)
     b = ctx.broadcaster
     client.offer(b.snapshot())

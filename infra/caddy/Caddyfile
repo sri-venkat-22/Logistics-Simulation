@@ -1,7 +1,9 @@
 # AEGIS edge (Phase 8): automatic HTTPS (Let's Encrypt) for AEGIS_DOMAIN, the SPA, and the API behind one origin.
 #   AEGIS_DOMAIN=aegis.example.tech   ACME_EMAIL=ops@example.tech
+# Behind a TLS-terminating tunnel (scripts/live_tunnel.sh) AEGIS_DOMAIN=:8090 serves plain HTTP locally, with
+# AEGIS_API=localhost:8000 and AEGIS_WEB_ROOT=apps/web/dist.
 {
-	email {$ACME_EMAIL}
+	email {$ACME_EMAIL:ops@example.tech}
 	servers {
 		trusted_proxies static private_ranges
 	}
@@ -13,7 +15,7 @@
 	# API, WebSockets, OpenAPI docs and probes -> the API container
 	@api path /api/* /ws/* /docs /docs/* /openapi.json /healthz /readyz
 	handle @api {
-		reverse_proxy api:8000 {
+		reverse_proxy {$AEGIS_API:api:8000} {
 			header_up X-Forwarded-Proto {scheme}
 		}
 	}
@@ -24,7 +26,7 @@
 
 	# the single-page app (hash routing, so every path is index.html)
 	handle {
-		root * /srv/web
+		root * {$AEGIS_WEB_ROOT:/srv/web}
 		@assets path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 		try_files {path} /index.html

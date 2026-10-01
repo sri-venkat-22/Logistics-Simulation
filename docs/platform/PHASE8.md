@@ -12,6 +12,22 @@
 | CD: GHCR images → SSH `docker compose pull && up -d`; optional Vercel | [`.github/workflows/cd.yml`](../../.github/workflows/cd.yml), [`docker-compose.prod.yml`](../../docker-compose.prod.yml) |
 | Security section | [`docs/security/SECURITY.md`](../security/SECURITY.md) |
 
+## Live URL
+
+**https://thunderously-unwitty-chau.ngrok-free.dev** (HTTPS, sign-in required). It is also on the [title slide](../pitch/title-slide.png), the deck's first slide.
+
+Until the cloud VM and the `.tech` domain exist, the public URL is an ngrok tunnel to the production configuration running on one machine:
+
+```bash
+./scripts/live_tunnel.sh
+```
+
+- **Path.** ngrok (TLS) → Caddy `:8090` with the same `infra/caddy/Caddyfile` (SPA, CSP, HSTS, `/metrics` hidden) → the API on `127.0.0.1:8100` with `AEGIS_ENV=prod`. The Reality Emulator, including SUMO, signs its telemetry with the production keys.
+- **Secrets and accounts.** The script generates them once into `.env.tunnel` (git-ignored, mode 600). The dev users, dev bearer tokens and public dev keys are refused at startup.
+- **Isolation.** It uses its own database (`aegis_live`) and Redis DB 5.
+- **Checked over the public URL:** HSTS + CSP present, `/readyz` ready, the dev password `aegis-planner` → 401, a generated account → a 15-min JWT, plan apply without a token → 401, `/metrics` → 404. The WebSocket is token-gated; the UI opens the sign-in dialog and goes live after signing in.
+- **Limits.** The tunnel is up only while this machine runs it, and ngrok's free plan shows a one-time interstitial. The CD path below replaces it.
+
 ## CI
 
 Every push and PR runs four jobs:

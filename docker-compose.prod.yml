@@ -38,11 +38,25 @@ services:
       AEGIS_ENV: prod
       AEGIS_DB_URL: postgresql+psycopg://aegis:${POSTGRES_PASSWORD}@db/aegis
       AEGIS_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      AEGIS_PUBLISHERS: reality-emulator:${AEGIS_PUBLISHER_KEY:?set AEGIS_PUBLISHER_KEY}
     networks: [internal]
     restart: unless-stopped
     depends_on:
       migrate: {condition: service_completed_successfully}
       redis: {condition: service_started}
+  # the demo's "reality": signed telemetry (SUMO city trucks + national trucks) into the API, live chaos and applied
+  # plans from Redis. Replace it with real gateways (same HMAC contract) in a real deployment.
+  emulator:
+    image: ${AEGIS_API_IMAGE:-ghcr.io/sri-venkat-22/aegis-api:latest}
+    command: ["python", "-m", "sim.reality.run", "--hours", "720", "--warmup-h", "${AEGIS_TWIN_WARMUP_H:-58}", "--realtime", "60",
+              "--http", "http://api:8000", "--chaos-redis", "redis://:${REDIS_PASSWORD}@redis:6379/0", "--gps-period", "2"]
+    environment:
+      AEGIS_MASTER_KEY: ${AEGIS_MASTER_KEY:?set AEGIS_MASTER_KEY}
+      AEGIS_PUBLISHER_KEY: ${AEGIS_PUBLISHER_KEY}
+    networks: [internal]
+    restart: unless-stopped
+    depends_on:
+      api: {condition: service_healthy}
   web:
     image: ${AEGIS_WEB_IMAGE:-ghcr.io/sri-venkat-22/aegis-web:latest}
     environment:

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from datetime import datetime
@@ -24,7 +25,7 @@ from sim.micro.runner import CFG
 from sim.paths import SCENARIO_TEMPLATES
 from sim.reality.attacks import AttackInjector
 from sim.reality.emulator import RealityEmulator
-from sim.reality.telemetry import FanoutSink, HttpSink, JsonlSink, MemorySink
+from sim.reality.telemetry import DEFAULT_MASTER, FanoutSink, HttpSink, JsonlSink, MemorySink
 from sim.scenarios.dsl import Scenario
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -110,7 +111,11 @@ def main(argv: list[str] | None = None) -> int:
         inj.attacks.append(atk)
         atk.id = f"A{len(inj.attacks):04d}"
     sinks = []
-    http = HttpSink(a.http) if a.http else None
+    # production keys from the environment (the same values as the API's AEGIS_MASTER_KEY / AEGIS_PUBLISHERS entry);
+    # without them the public development key is used, which an AEGIS_ENV=prod API rejects
+    master = os.environ.get("AEGIS_MASTER_KEY", DEFAULT_MASTER.decode()).encode()
+    pub_key = os.environ.get("AEGIS_PUBLISHER_KEY", master.decode()).encode()
+    http = HttpSink(a.http, publisher_key=pub_key) if a.http else None
     if http:
         sinks.append(http)
     if a.out:
@@ -123,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
           f"{'SUMO city trucks + ' if micro else ''}national trucks · {len(inj.attacks)} attacks · "
           f"→ {', '.join(filter(None, [a.http, str(a.out) if a.out else None])) or 'memory (dry run)'}")
     try:
-        em = RealityEmulator(start, seed=a.seed, micro=micro, sink=sink, attacks=inj, realtime_factor=a.realtime,
+        em = RealityEmulator(start, seed=a.seed, micro=micro, sink=sink, attacks=inj, realtime_factor=a.realtime, master=master,
                              national_gps_period_s=a.gps_period, telemetry_from_h=t0, run_salt=f"{time.time_ns()}")
         if a.chaos_redis:
             em.chaos_poll = chaos_poller(a.chaos_redis)
