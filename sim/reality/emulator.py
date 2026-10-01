@@ -65,6 +65,9 @@ class RealityEmulator:
         self.start, self.seed = start, seed
         self.telemetry_from_h = telemetry_from_h
         self.chaos_poll = None  # callable returning live chaos commands (sim/reality/run.py --chaos-redis)
+        self.plan_poll = None   # callable returning applied plans (POST /plans/{id}/apply -> stream plan.commands)
+        self.plan_ack = None    # fn(plan_id, acks): report what the fleet dispatched (shipment ids of transfers)
+        self.plan_routes: dict[tuple[str, str], tuple[str, tuple]] = {}  # (dc, sku) -> (plan id, lanes) of reroutes
         net = Network()
         self.twin = Twin(net, DemandModel(net), start, seed=seed, realtime_factor=realtime_factor)
         self.env = self.twin.env
@@ -243,6 +246,9 @@ class RealityEmulator:
         if e["event"] != "asn" or not self.live():
             return
         dc, sku = e["dc"], e["sku"]
+        route = self.plan_routes.get((dc, sku))
+        if route and tuple(e["lanes"]) == route[1] and self.plan_ack is not None:  # a shipment on a plan's new route
+            self.plan_ack(route[0], [{"ok": True, "type": "routed", "shipment": e["shipment"]}], record=False)
         lead_days, _ = self.twin.lead_stats_days(dc, sku)
         now = self.env.now
         qty = float(e["qty"])
@@ -270,7 +276,28 @@ class RealityEmulator:
                         except (ValueError, KeyError):
                             pass
                 self.injector.tick(self.env.now)
+                if self.plan_poll is not None:
+                    for cmd in self.plan_poll():
+                        self.dispatch_plan(cmd)
             yield self.env.timeout(10 / 3600.0)
+
+    def dispatch_plan(self, cmd: dict) -> list[dict]:
+        """An approved plan reaches the real fleet: its new routes and transfers are executed in reality, so city
+        legs (transfers through Hyderabad, reroutes via its DCs) spawn SUMO trucks on the new corridors."""
+        acks = []
+        for ev in cmd.get("events", []):
+            try:
+                acks.append(self.twin.apply(ev))
+                if ev.get("type") == "set_route":
+                    self.plan_routes[(ev["dc"], ev["sku"])] = (cmd.get("id"), tuple(ev["lanes"]))
+                elif ev.get("type") == "set_path":
+                    self.plan_routes.pop((ev["dc"], ev["sku"]), None)
+            except (ValueError, KeyError) as e:  # reality moved on (a donor ran dry, a DC closed): skip that one
+                acks.append({"ok": False, "type": ev.get("type"), "error": str(e)})
+        self.twin.log("plan_dispatched", plan=cmd.get("id"), events=len(acks), ok=sum(1 for a in acks if a.get("ok")))
+        if self.plan_ack is not None:
+            self.plan_ack(cmd.get("id"), acks)
+        return acks
 
     # ------------------------------------------------------------------ run / truth
     def run_until(self, t_h: float) -> None:

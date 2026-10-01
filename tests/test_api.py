@@ -271,6 +271,12 @@ def test_scenario_job_cache_progress_deltas_optimize_apply(client):
     a = client.post(f"/api/v1/plans/{buffer['id']}/apply", headers=PLANNER).json()
     assert a["applied_by"] == "planner-token" and all(x["ok"] for x in a["acks"])
     assert ctx.twin.twin.warehouses["DC_BLR"].policy["SKU_VAX"].z == pytest.approx(z0 + 0.8)
+    # the plan also goes to the fleet (the emulator reads plan.commands); dispatched shipments come back via a hash
+    r = redis.Redis.from_url(ctx.settings.redis_url)
+    cmd = orjson.loads(r.xrevrange("plan.commands", count=1)[0][1][b"c"])
+    assert cmd["id"] == buffer["id"] and cmd["events"][0]["type"] == "policy_buffer" and cmd["by"] == "planner-token"
+    r.hset("plan.dispatch", mapping={"SH000777": buffer["id"]})
+    assert client.get("/api/v1/plans/dispatched").json()["shipments"]["SH000777"] == buffer["id"]
     assert client.get(f"/api/v1/plans/{buffer['id']}").json()["name"].startswith("Buffer")
 
 

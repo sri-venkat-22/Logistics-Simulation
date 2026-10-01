@@ -111,6 +111,8 @@ export async function apiReachable(timeoutMs = 1500): Promise<boolean> {
 export const pushDisruption = (template: string, start = "now") =>
   api<{ id: string; impact: Impact }>("/api/v1/disruptions", { method: "POST", body: JSON.stringify({ template, start }), auth: true });
 export const listDisruptions = () => api<TwinEffect[]>("/api/v1/disruptions");
+/** Shipments the fleet dispatched for applied plans: {shipment id: plan id}. */
+export const plansDispatched = () => api<{ shipments: Record<string, string> }>("/api/v1/plans/dispatched");
 export const endDisruption = (effectId: string) => api<{ ok: boolean }>(`/api/v1/disruptions/${effectId}`, { method: "DELETE", auth: true });
 
 // ------------------------------------------------------------------ Phase 7: criticality, trust, ML, Copilot

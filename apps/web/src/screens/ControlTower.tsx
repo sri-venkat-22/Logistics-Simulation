@@ -245,7 +245,7 @@ function LiveTower() {
   const fps = useFps(t);
   const mapRef = useRef<MapRef>(null);
   const { layers, selectedNode, selectNode } = useAegis();
-  const { network, inventory, ports, dataVersion } = useLive();
+  const { network, inventory, ports, dataVersion, planShipments } = useLive();
   const [zoom, setZoom] = useState<number>(VIEW.INDIA.zoom);
   useEffect(() => {
     const id = window.setInterval(() => { const z = mapRef.current?.getZoom(); if (z !== undefined) setZoom(Math.round(z * 4) / 4); }, 250);
@@ -253,7 +253,7 @@ function LiveTower() {
   }, []);
   const now = performance.now() / 1000;
   const layerList = network ? liveLayers({ t: now, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports, layers,
-    selectedNode, version: dataVersion, zoom }) : [];
+    selectedNode, version: dataVersion, zoom, planShipments }) : [];
   return (
     <div className="absolute inset-0">
       <DeckMap
@@ -276,7 +276,7 @@ function LiveTower() {
           }
           if ("trail" in o) {
             const v = o as unknown as LiveVehicle;
-            return { html: `<div style="font-weight:600">${v.id}</div><div style="color:#9AA7BD">${v.scope === "city" ? "Hyderabad · SUMO" : "national road"} · ${v.status}</div><div style="font-family:JetBrains Mono Variable,monospace;margin-top:4px">${v.speed.toFixed(0)} km/h · ${v.heading.toFixed(0)}°${v.shipment ? ` · ${v.shipment}` : ""}</div>`, style: tooltipStyle };
+            return { html: `<div style="font-weight:600">${v.id}</div><div style="color:#9AA7BD">${v.scope === "city" ? "Hyderabad · SUMO" : "national road"} · ${v.status}</div><div style="font-family:JetBrains Mono Variable,monospace;margin-top:4px">${v.speed.toFixed(0)} km/h · ${v.heading.toFixed(0)}°${v.shipment ? ` · ${v.shipment}` : ""}</div>${v.shipment && planShipments[v.shipment] ? `<div style="color:#A78BFA;margin-top:4px">dispatched by plan ${planShipments[v.shipment]}</div>` : ""}`, style: tooltipStyle };
           }
           if ("live_mult" in o) {
             const l = o as unknown as ApiLane;

@@ -11,7 +11,7 @@ Every number below comes from a script in this repository and is reproducible fr
 | 7.3 ML | `ml/eta.py`, `ml/forecast.py`, `ml/anomaly.py` | ETA (LightGBM quantiles): twin MAE 6.76 h vs 7.09 h schedule, P10–P90 coverage 78 %. DataCo MAE 1.03 d vs 1.29 d, late-delivery AUC 0.759. **AutoETS + calendar WAPE 13.4 %** vs 29.3 % for the planning model; used for reorder points it lifts fill **71.9 % → 91.7 %**. ASN anomaly: precision 1.0, 0 false positives |
 | 7.4 AI Copilot | `services/api/app/copilot.py`, `apps/web/src/components/LiveCopilot.tsx` | Claude Opus 5.5 with strict tools, streamed over SSE, or an offline planner on the same tools. Proposals need a human Apply; nothing mutates the twin |
 | 7.5 Trust layer, all 9 layers | `services/api/app/trust_layers.py`, `pipeline.py`, [`docs/trust/TRUST.md`](../trust/TRUST.md) | Red-team benchmark: **536 / 561 attacks detected (95.5 %)**, message precision 0.959, false-positive rate 0.19 %, 46k msgs/s on one core. Live: 0 quarantines in 102,574 clean emulator messages |
-| Tests | `tests/test_optimize.py`, `test_trust.py`, `test_ml.py`, `test_copilot.py` | Part of the 118-test suite (see Phase 8) |
+| Tests | `tests/test_optimize.py`, `test_trust.py`, `test_ml.py`, `test_copilot.py` | Part of the 119-test suite (see Phase 8) |
 
 ---
 
@@ -43,6 +43,14 @@ The engine gained `set_route` (any contiguous lane sequence from a source of the
 > Full response (reroute + transfer + buffer): moves 58 electronics units from Hyderabad-Medchal to Hyderabad-Shamshabad, arriving in 5 h; moves 528 electronics units from Hyderabad-Medchal to Bengaluru-Hoskote, arriving in 31 h; reroutes 2 replenishment flows via Hyderabad-Shamshabad, Visakhapatnam Port; raises safety stock for electronics. It keeps Bengaluru-Hoskote electronics in stock where doing nothing stocks out at day 21.5. P50 fill 100.0 % vs 99.8 %, cost +5.7 L, CO2 +1.3 t, CVaR95 shortfall -236.8 L.
 
 **Apply** (`POST /plans/{id}/apply`, planner role, audited) pushes routes, transfers and buffers into the live twin. A single failing action (for example, a donor DC that closed since the plan was made) is reported, not fatal.
+
+The approved plan also goes **to the fleet**: the API publishes it on the Redis stream `plan.commands`, and the Reality Emulator (`--chaos-redis`) executes it in reality.
+
+- Transfers and new routes through Hyderabad become **SUMO trucks on the new city corridors**. The transfer-only lane L053 (Shamshabad → Medchal) is coupled too.
+- The emulator acknowledges dispatched shipments in the hash `plan.dispatch`, served at `GET /plans/dispatched`.
+- The Control Tower and Scenario Lab draw those trucks and their trails in AI violet, and the tooltip names the plan.
+
+Live check: applying *Full response* on the 21-day Chennai closure sent two electronics transfers out of Medchal as SUMO trucks, at 75–79 km/h through Secunderabad. `tests/test_reality.py::test_applied_plan_reaches_the_fleet_and_its_trucks_drive_in_sumo` covers both directions.
 
 Measured (n = 100 per plan, 30 days, seeds 42–141; [`optimizer.json`](optimizer.json)):
 

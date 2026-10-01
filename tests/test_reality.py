@@ -149,6 +149,30 @@ def test_city_trucks_ping_at_1hz():
     assert all(w - 0.05 < m["payload"]["lon"] < e + 0.05 and s - 0.05 < m["payload"]["lat"] < n + 0.05 for m in city)
 
 
+def test_applied_plan_reaches_the_fleet_and_its_trucks_drive_in_sumo():
+    """POST /plans/{id}/apply -> plan.commands -> the emulator executes the plan in reality: a transfer through
+    Hyderabad (both directions, incl. the transfer-only lane L053) becomes SUMO trucks whose GPS carries the
+    transfer's shipment id, and the dispatch is acknowledged with those shipment ids."""
+    if not CFG.exists():
+        pytest.skip("micro-twin not built")
+    sink, acked = MemorySink(), []
+    with MicroProcess(seed=1042, background=False, fcd_every=1) as mp:
+        em = RealityEmulator(START, seed=1042, micro=mp, sink=sink, national_gps=False, telemetry_from_h=10.0)
+        em.plan_ack = lambda pid, acks, record=True: acked.append((pid, acks))
+        em.run_until(10.1)
+        acks = em.dispatch_plan({"id": "PLAN-T", "events": [
+            {"type": "transfer", "from": "DC_HYD_MEDCHAL", "to": "DC_HYD_SHAMSHABAD", "sku": "SKU_ELEC", "qty": 300, "lanes": ["L047"]},
+            {"type": "transfer", "from": "DC_HYD_SHAMSHABAD", "to": "DC_HYD_MEDCHAL", "sku": "SKU_FMCG", "qty": 200, "lanes": ["L053"]},
+            {"type": "transfer", "from": "DC_BLR", "to": "DC_HYD_MEDCHAL", "sku": "SKU_VAX", "qty": 5, "lanes": ["L050"]}]})
+        em.run_until(16.0)  # ~4 h of dock handling at the origin, then the drive in SUMO
+        em.close()
+    assert [a["ok"] for a in acks] == [True, True, False]  # the last one is invalid (no such lane chain / SKU): reported
+    ships = {a["shipment"] for a in acks if a.get("ok")}
+    assert len(ships) == 2 and acked[0][0] == "PLAN-T"
+    city = {m["payload"].get("shipment_id") for m in sink.messages if m["kind"] == "gps" and m["payload"]["scope"] == "city"}
+    assert ships <= city  # both transfers drove through SUMO, visibly, on the city map
+
+
 class _Ingest(BaseHTTPRequestHandler):
     got: list = []
 

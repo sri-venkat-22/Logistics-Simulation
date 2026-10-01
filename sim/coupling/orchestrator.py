@@ -112,6 +112,11 @@ class CoupledTwin:
             if l.id in plans or l.mode not in ("road", "air"):
                 continue
             inside_to, inside_from = l.to_id in NODE_HUB, l.from_id in NODE_HUB
+            if inside_to and inside_from and l.mode == "road" and NODE_HUB[l.from_id] != NODE_HUB[l.to_id]:
+                # an uncalibrated city lane, e.g. the transfer-only L053 Shamshabad -> Medchal used by optimiser plans
+                a, b = NODE_HUB[l.from_id], NODE_HUB[l.to_id]
+                plans[l.id] = LegPlan("city", a, [b], [(a, b)])
+                continue
             if inside_to and not inside_from:
                 hub = NODE_HUB[l.to_id]
                 gw = "RGIA Air Cargo" if l.mode == "air" else self._gateway(l.from_id, hub)

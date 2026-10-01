@@ -2,7 +2,8 @@
  * deck.gl layers for the Control Tower on live data (Phase 5):
  *   nodes      ScatterplotLayer (+ pulsing ring on nodes that are disrupted or at risk)
  *   lanes      ArcLayer, coloured by status (a live lane-time multiplier > 1 = at risk)
- *   trucks     TripsLayer trails of recent fixes + ScatterplotLayer heads at the interpolated position
+ *   trucks     TripsLayer trails of recent fixes + ScatterplotLayer heads at the interpolated position; trucks on an
+ *              applied plan's transfers / new routes are violet
  *   inventory  ColumnLayer 3-D bars of observed on-hand stock per DC
  */
 import { ArcLayer, ColumnLayer, ScatterplotLayer, TextLayer } from "@deck.gl/layers";
@@ -47,6 +48,7 @@ export interface LiveLayerState {
   impact?: Impact | null;             // Scenario Lab: what the what-if disrupts (drawn in red)
   risk?: Record<string, number>;      // Scenario Lab: node -> added stock-out probability (amber -> red)
   trailSeconds?: number;
+  planShipments?: Record<string, string>;  // shipment -> plan id: trucks dispatched by an applied plan (AI violet)
 }
 
 export function liveLayers(s: LiveLayerState): Layer[] {
@@ -81,32 +83,35 @@ export function liveLayers(s: LiveLayerState): Layer[] {
   if (L.trucks) {
     const trail = s.trailSeconds ?? 25;
     const trips = s.vehicles.filter((v) => v.trail.length > 1);
+    const plan = s.planShipments ?? {};
+    const onPlan = (d: LiveVehicle) => d.shipment !== null && d.shipment in plan;
+    const planKey = Object.keys(plan).length;
     out.push(new TripsLayer<LiveVehicle>({
       id: "live-trails",
       data: trips,
       getPath: (d) => [...d.trail.map((p) => [p[0], p[1]] as [number, number]), positionAt(d, s.t)],
       getTimestamps: (d) => [...d.trail.map((p) => p[2]), s.t],
-      getColor: (d) => (d.status === "predicted" ? RGB.warn : d.scope === "city" ? RGB.good : RGB.ok),
+      getColor: (d) => (d.status === "predicted" ? RGB.warn : onPlan(d) ? RGB.ai : d.scope === "city" ? RGB.good : RGB.ok),
       currentTime: s.t,
       trailLength: trail,
       widthMinPixels: 2.2,
       capRounded: true, jointRounded: true,
       opacity: 0.85,
-      updateTriggers: { getPath: s.t, getTimestamps: s.t },
+      updateTriggers: { getPath: s.t, getTimestamps: s.t, getColor: planKey },
       parameters: { depthCompare: "always" },
     }));
     out.push(new ScatterplotLayer<LiveVehicle>({
       id: "live-trucks",
       data: s.vehicles,
       getPosition: (d) => positionAt(d, s.t),
-      getFillColor: (d) => (d.status === "predicted" ? withA(RGB.warn, 230) : withA(RGB.ink, 235)),
-      getRadius: (d) => (d.scope === "city" ? 3.2 : 2.6),
+      getFillColor: (d) => (d.status === "predicted" ? withA(RGB.warn, 230) : onPlan(d) ? withA(RGB.ai, 245) : withA(RGB.ink, 235)),
+      getRadius: (d) => (onPlan(d) ? 4.4 : d.scope === "city" ? 3.2 : 2.6),
       radiusUnits: "pixels",
       stroked: true,
       getLineColor: (d) => (d.status === "predicted" ? withA(RGB.warn, 120) : [7, 11, 20, 220]),
       lineWidthMinPixels: (1),
       pickable: true,
-      updateTriggers: { getPosition: s.t, getFillColor: s.t, getLineColor: s.t },
+      updateTriggers: { getPosition: s.t, getFillColor: s.t, getLineColor: s.t, getRadius: planKey },
       parameters: { depthCompare: "always" },
     }));
   }

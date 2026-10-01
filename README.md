@@ -116,7 +116,7 @@ Report with all measured results: [`docs/intelligence/PHASE7.md`](docs/intellige
 .venv/bin/python -m ml.eta && .venv/bin/python -m ml.forecast && .venv/bin/python -m ml.anomaly
 ```
 
-- **Optimiser.** Candidates come from k-shortest reroutes (NetworkX), OR-Tools min-cost-flow stock transfers, air expedite and safety-stock buffers. Each one is evaluated with Monte Carlo on common seeds, then ranked by Pareto front plus a weighted score (Scenario Lab sliders). Every plan carries an event-log explanation, and `POST /plans/{id}/apply` pushes it into the live twin. On a 21-day Chennai port closure the top plan cuts the CVaR₉₅ shortfall by **89 %**.
+- **Optimiser.** Candidates come from k-shortest reroutes (NetworkX), OR-Tools min-cost-flow stock transfers, air expedite and safety-stock buffers. Each one is evaluated with Monte Carlo on common seeds, then ranked by Pareto front plus a weighted score (Scenario Lab sliders). Every plan carries an event-log explanation, and `POST /plans/{id}/apply` pushes it into the live twin and to the fleet, where SUMO trucks visibly take the new routes and transfers (drawn violet). On a 21-day Chennai port closure the top plan cuts the CVaR₉₅ shortfall by **89 %**.
 - **Criticality.** Betweenness, a Motter–Lai cascade and the Simchi-Levi Risk Exposure Index rank the single points of failure. The Network Graph animates the cascade in 3-D.
 - **ML.**
   - LightGBM ETA quantiles: twin MAE 6.76 h, P10–P90 coverage 78 %. DataCo MAE 1.03 d, late-delivery AUC 0.76.
@@ -144,7 +144,7 @@ Report with all measured results: [`docs/intelligence/PHASE7.md`](docs/intellige
 - **Audit log.** Logins, plan applies, chaos injections, key rotations and Copilot use go to `audit_log` and are shown in the Trust Center.
 - **CI** ([`ci.yml`](.github/workflows/ci.yml)): ruff, mypy, pytest with coverage, eslint, tsc, vitest, a Playwright demo smoke test, pip-audit, npm audit, Docker builds, `caddy validate` and Trivy.
 - **CD** ([`cd.yml`](.github/workflows/cd.yml)): on `main`, after a green CI run, images are pushed to GHCR. The workflow then runs `docker compose pull && up -d` over SSH on the VM (and optionally a Vercel deploy).
-- Tests: `.venv/bin/python -m pytest` (118 tests) · `cd apps/web && npm test && npx playwright test`.
+- Tests: `.venv/bin/python -m pytest` (119 tests) · `cd apps/web && npm test && npx playwright test`.
 
 ## Run the prototype locally
 

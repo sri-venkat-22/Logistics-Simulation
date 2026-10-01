@@ -9,7 +9,7 @@
  */
 import { decode } from "@msgpack/msgpack";
 import { create } from "zustand";
-import { getNetwork, listDisruptions, wsUrl, type ApiNetwork, type TwinEffect } from "./api";
+import { getNetwork, listDisruptions, plansDispatched, wsUrl, type ApiNetwork, type TwinEffect } from "./api";
 import { useAuth } from "./auth";
 import type { Sev } from "./data";
 
@@ -65,6 +65,8 @@ interface LiveStore {
   status: "idle" | "connecting" | "live" | "offline" | "unauthorized";
   network: ApiNetwork | null;
   disruptions: TwinEffect[];
+  /** shipment id -> plan id for trucks dispatched by an applied plan (drawn in the AI colour) */
+  planShipments: Record<string, string>;
   inventory: Record<string, LiveInv>;
   ports: Record<string, { status: string; berth_queue: number; anchorage: number; berths_busy: number; berths_total: number }>;
   kpis: LiveKpis | null;
@@ -98,6 +100,7 @@ const makeStore = () => create<LiveStore>((set, get) => ({
   status: "idle",
   network: null,
   disruptions: [],
+  planShipments: {},
   inventory: {},
   ports: {},
   kpis: null,
@@ -111,8 +114,9 @@ const makeStore = () => create<LiveStore>((set, get) => ({
 
   refreshNetwork: async () => {
     try {
-      const [network, disruptions] = await Promise.all([getNetwork(), listDisruptions()]);
-      set({ network, disruptions, dataVersion: get().dataVersion + 1 });
+      const [network, disruptions, dispatched] = await Promise.all([getNetwork(), listDisruptions(),
+        plansDispatched().catch(() => ({ shipments: get().planShipments }))]);
+      set({ network, disruptions, planShipments: dispatched.shipments, dataVersion: get().dataVersion + 1 });
     } catch { /* keep the last copy */ }
   },
 

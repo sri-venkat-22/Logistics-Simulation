@@ -50,6 +50,36 @@ def chaos_poller(url: str):
     return poll
 
 
+def plan_channel(url: str):
+    """Applied plans from the plan.commands stream (POST /plans/{id}/apply) and the dispatch acks back: the hash
+    plan.dispatch maps each dispatched shipment to its plan (the live UI highlights those trucks)."""
+    import orjson
+    import redis
+    r = redis.Redis.from_url(url)
+    last = r.xinfo_stream("plan.commands")["last-generated-id"] if r.exists("plan.commands") else "0-0"
+
+    def poll() -> list[dict]:
+        nonlocal last
+        out = []
+        for _, entries in r.xread({"plan.commands": last}, count=20) or []:
+            for eid, f in entries:
+                last = eid
+                out.append(orjson.loads(f[b"c"]))
+                print(f"  ✓ plan {out[-1]['id']} dispatched to the fleet: {len(out[-1].get('events', []))} actions")
+        return out
+
+    def ack(plan_id: str, acks: list[dict], record: bool = True) -> None:
+        ships = {a["shipment"]: plan_id for a in acks if a.get("ok") and a.get("shipment")}
+        pipe = r.pipeline()
+        if ships:
+            pipe.hset("plan.dispatch", mapping=ships)
+        pipe.expire("plan.dispatch", 7 * 24 * 3600)
+        if record:
+            pipe.set(f"plan:dispatch:{plan_id}", orjson.dumps({"plan": plan_id, "acks": acks}), ex=7 * 24 * 3600)
+        pipe.execute()
+    return poll, ack
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m sim.reality.run", description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -66,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--http", help="ingest API base URL")
     ap.add_argument("--out", type=Path, help="JSON lines file (.gz ok)")
     ap.add_argument("--truth", type=Path, help="write ground truth (perturbations + attack labels) here")
-    ap.add_argument("--chaos-redis", help="Redis URL to take live chaos commands from (stream chaos.commands, POST /chaos/inject)")
+    ap.add_argument("--chaos-redis", help="Redis URL to take live chaos commands (stream chaos.commands, POST /chaos/inject) and applied "
+                         "plans (stream plan.commands, POST /plans/{id}/apply) from")
     a = ap.parse_args(argv)
 
     start = datetime.fromisoformat(a.start).replace(tzinfo=IST)
@@ -96,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
                              national_gps_period_s=a.gps_period, telemetry_from_h=t0, run_salt=f"{time.time_ns()}")
         if a.chaos_redis:
             em.chaos_poll = chaos_poller(a.chaos_redis)
+            em.plan_poll, em.plan_ack = plan_channel(a.chaos_redis)
         wall0 = time.perf_counter()
         step = 0.05 if a.realtime else max(0.25, a.hours / 8)  # report every 3 wall-minutes at demo pace
         t = t0 if t0 > 0 else 0.0

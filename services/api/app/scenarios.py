@@ -11,7 +11,9 @@ POST /scenarios/{id}/optimize  candidate plans from sim.optimize.optimizer (rero
                              each evaluated with Monte Carlo on the same seeds (common random numbers); Pareto
                              front + weighted score; an explanation from one evidence replication's event log
 GET  /scenarios/{id}/plans   re-rank with the planner's weights (service, risk = CVaR95 shortfall, cost, CO2)
-POST /plans/{id}/apply       planner+: push the plan's actions into the live twin; audit_log row
+POST /plans/{id}/apply       planner+: push the plan's actions into the live twin and to the fleet (stream
+                             plan.commands -> the Reality Emulator, whose SUMO trucks take the new routes); audit_log row
+GET  /plans/dispatched       shipments the fleet dispatched for applied plans (the live map highlights them)
 Jobs run replication chunks in a ProcessPoolExecutor (spawn), so the API event loop stays responsive.
 """
 from __future__ import annotations
@@ -405,6 +407,13 @@ async def ranked_plans(sid: str, request: Request, service: float = optimizer.DE
     return {"weights": w.model_dump(), "plans": optimizer.rank(orjson.loads(raw), w.model_dump())}
 
 
+@router.get("/api/v1/plans/dispatched")
+async def plans_dispatched(request: Request) -> dict[str, Any]:
+    """Shipments the fleet dispatched for applied plans ({shipment id: plan id}), so the map can highlight them."""
+    raw = await request.app.state.ctx.redis.hgetall("plan.dispatch")
+    return {"shipments": {k.decode(): v.decode() for k, v in raw.items()}}
+
+
 @router.get("/api/v1/plans/{pid}")
 async def get_plan(pid: str, request: Request) -> dict:
     raw = await request.app.state.ctx.redis.get(f"plan:{pid}")
@@ -427,6 +436,11 @@ async def apply_plan(pid: str, request: Request, who: Identity = Depends(require
             acks.append(ctx.twin.apply(ev))
         except ValueError as e:  # e.g. a donor DC closed since the plan was made: apply the rest, report this one
             acks.append({"ok": False, "type": ev["type"], "error": str(e)})
+    # the approved plan also goes to the fleet (the Reality Emulator in the demo): reality executes the new routes
+    # and transfers, so SUMO trucks take the new city corridors and their GPS shows the reroute
+    events = optimizer.to_twin_events(plan["actions"])
+    await ctx.redis.xadd("plan.commands", {"c": orjson.dumps({"id": pid, "name": plan["name"], "events": events,
+                                                                "by": who.user})}, maxlen=1000, approximate=True)
     audit(ctx.engine, who.user, "plan.apply", pid, {"actions": plan["actions"], "role": who.role, "acks": acks})
     execute(ctx.engine, "update plans set applied_at = now(), applied_by = :u where id = :id", u=who.user, id=pid)
     ok = sum(1 for a in acks if a.get("ok"))

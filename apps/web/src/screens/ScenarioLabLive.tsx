@@ -112,7 +112,7 @@ function FanChart({ st, base, pair }: { st: ScenarioStatus; base: ScenarioStatus
 
 export default function ScenarioLabLive() {
   const t = useAnimationClock();
-  const { network, inventory, ports, dataVersion } = useLive();
+  const { network, inventory, ports, dataVersion, planShipments } = useLive();
   const { layers } = useAegis();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sel, setSel] = useState<string>("supplier_failure");
@@ -180,7 +180,7 @@ export default function ScenarioLabLive() {
   const mapLayers = network ? [
     ...liveLayers({ t: performance.now() / 1000, pulse: t, net: network, vehicles: [...liveVehicles.values()], inventory, ports,
       layers: { ...layers, inventory: false }, selectedNode: tpl?.target ?? null, version: dataVersion,
-      impact: st?.impact ?? null, risk: res ? risk : undefined }),
+      impact: st?.impact ?? null, risk: res ? risk : undefined, planShipments }),
     ...(tpl?.polygon ? [new PolygonLayer({ id: "sc-poly", data: [{ p: tpl.polygon }], getPolygon: (d: { p: [number, number][] }) => d.p,
       getFillColor: [239, 68, 68, 40], getLineColor: [239, 68, 68, 220], lineWidthMinPixels: 2, stroked: true })] : []),
     ...(target ? [new ScatterplotLayer({ id: "sc-target", data: [target], getPosition: (d: { lon: number; lat: number }) => [d.lon, d.lat],
