@@ -33,15 +33,12 @@ services:
     envVars:
       # Connect to the internal Render Database and Redis automatically
       - key: AEGIS_DB_URL
-        fromService:
-          type: pserv
-          name: aegis-db
-          envVarKey: RENDER_DISCOVERY_URL
+        value: postgresql+psycopg://aegis:aegis@aegis-db:5432/aegis
       - key: AEGIS_REDIS_URL
         fromService:
           type: redis
           name: aegis-redis
-          envVarKey: REDIS_URL
+          property: connectionString
       - key: AEGIS_TWIN_WARMUP_H
         value: "58"
 
@@ -50,10 +47,10 @@ services:
     name: aegis-emulator
     env: docker
     dockerfilePath: infra/docker/api.Dockerfile
-    dockerCommand: "python -m sim.reality.run --hours 24 --warmup-h 58 --realtime 60 --http http://aegis-api:8000 --chaos-redis $AEGIS_REDIS_URL --gps-period 2 --no-micro"
+    dockerCommand: "python -m sim.reality.run --hours 24 --warmup-h 58 --realtime 60 --http http://aegis-api:10000 --chaos-redis $AEGIS_REDIS_URL --gps-period 2 --no-micro"
     envVars:
       - key: AEGIS_REDIS_URL
         fromService:
           type: redis
           name: aegis-redis
-          envVarKey: REDIS_URL
+          property: connectionString
