@@ -18,7 +18,7 @@ export const laneGeo: LaneGeo[] = network.lanes.map((lane) => {
 const geoByLane = new Map(laneGeo.map((g) => [g.lane.id, g]));
 
 interface Particle { laneId: string; path: LonLatAlt[]; timestamps: number[] }
-const particles: Particle[] = (() => {
+export const particles: Particle[] = (() => {
   const r = rng(7);
   const out: Particle[] = [];
   for (const g of laneGeo) {
