@@ -1,0 +1,59 @@
+# Render Blueprint for AEGIS Logistics Simulation
+# This file automatically provisions the entire backend stack on Render.com
+
+services:
+  # 1. TimescaleDB (Time-series Database)
+  - type: pserv
+    name: aegis-db
+    env: image
+    image:
+      url: timescale/timescaledb-ha:pg17
+    disk:
+      name: pgdata
+      mountPath: /home/postgres/pgdata
+      sizeGB: 10
+    envVars:
+      - key: POSTGRES_USER
+        value: aegis
+      - key: POSTGRES_PASSWORD
+        value: aegis
+      - key: POSTGRES_DB
+        value: aegis
+
+  # 2. Redis (Cache & Pub/Sub)
+  - type: redis
+    name: aegis-redis
+    ipAllowList: [] # keeps it internal and secure
+
+  # 3. Python FastAPI Backend
+  - type: web
+    name: aegis-api
+    env: docker
+    dockerfilePath: infra/docker/api.Dockerfile
+    envVars:
+      # Connect to the internal Render Database and Redis automatically
+      - key: AEGIS_DB_URL
+        fromService:
+          type: pserv
+          name: aegis-db
+          envVarKey: RENDER_DISCOVERY_URL
+      - key: AEGIS_REDIS_URL
+        fromService:
+          type: redis
+          name: aegis-redis
+          envVarKey: REDIS_URL
+      - key: AEGIS_TWIN_WARMUP_H
+        value: "58"
+
+  # 4. Reality Emulator (Continuous Simulation Engine)
+  - type: worker
+    name: aegis-emulator
+    env: docker
+    dockerfilePath: infra/docker/api.Dockerfile
+    dockerCommand: "python -m sim.reality.run --hours 24 --warmup-h 58 --realtime 60 --http http://aegis-api:8000 --chaos-redis $AEGIS_REDIS_URL --gps-period 2 --no-micro"
+    envVars:
+      - key: AEGIS_REDIS_URL
+        fromService:
+          type: redis
+          name: aegis-redis
+          envVarKey: REDIS_URL
