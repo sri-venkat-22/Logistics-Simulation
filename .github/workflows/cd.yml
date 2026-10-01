@@ -28,14 +28,14 @@ jobs:
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: {ref: "${{ github.event.workflow_run.head_sha || github.sha }}"}
       - id: meta
         run: echo "tag=sha-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
         with: {registry: "${{ env.REGISTRY }}", username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: infra/docker/api.Dockerfile
@@ -43,7 +43,7 @@ jobs:
           tags: "${{ env.API_IMAGE }}:latest,${{ env.API_IMAGE }}:${{ steps.meta.outputs.tag }}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: infra/docker/web.Dockerfile
@@ -62,10 +62,10 @@ jobs:
       - if: env.HAS_SECRETS != 'true'
         run: echo "::notice::DEPLOY_HOST / DEPLOY_SSH_KEY not configured - skipping the VM deploy"
       - if: env.HAS_SECRETS == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Copy the compose file
         if: env.HAS_SECRETS == 'true'
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -74,7 +74,7 @@ jobs:
           target: ${{ secrets.DEPLOY_PATH || '/opt/aegis' }}
       - name: Pull and restart
         if: env.HAS_SECRETS == 'true'
-        uses: appleboy/ssh-action@v1.2.0
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -98,7 +98,7 @@ jobs:
       - if: env.HAS_SECRETS != 'true'
         run: echo "::notice::VERCEL_TOKEN not configured - skipping the Vercel deploy"
       - if: env.HAS_SECRETS == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - if: env.HAS_SECRETS == 'true'
         working-directory: apps/web
         env:

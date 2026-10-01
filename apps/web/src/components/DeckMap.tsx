@@ -33,6 +33,8 @@ export const DeckMap = forwardRef<MapRef, DeckMapProps>(function DeckMap(
 ) {
   const [loaded, setLoaded] = useState(false);
   const inner = useRef<MapRef>(null);
+  // re-expose the handle once the map has loaded (inner.current is only set then)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useImperativeHandle(ref, () => inner.current!, [loaded]);
   useEffect(() => {
     const t = setTimeout(() => setLoaded(true), 2500); // never leave a blank screen if tiles are slow
